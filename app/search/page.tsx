@@ -101,7 +101,9 @@ export default function SearchPage() {
                 </div>
                 <p className="text-zinc-400 text-sm">{concert.venue} · {concert.city}</p>
                 <p className="text-sm mt-2" style={{ color: '#F5A623' }}>{formatDate(concert.date)}</p>
-                <button className="mt-4 w-full py-2 rounded-full text-sm font-semibold border transition"
+                <button
+                  onClick={() => router.push(`/checkin?id=${concert.id}&artist=${encodeURIComponent(concert.artist)}&venue=${encodeURIComponent(concert.venue)}&city=${encodeURIComponent(concert.city)}&date=${concert.date}`)}
+                  className="mt-4 w-full py-2 rounded-full text-sm font-semibold border transition"
                   style={{ borderColor: '#F5A623', color: '#F5A623' }}>
                   Check In Here 🎶
                 </button>
