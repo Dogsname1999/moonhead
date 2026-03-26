@@ -5,9 +5,9 @@ import { supabase } from "@/lib/supabase"
 
 export default function ProfilePage() {
   const router = useRouter()
-  const [checkins, setCheckins] = useState([])
+  const [checkins, setCheckins] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [user, setUser] = useState(null)
+  const [user, setUser] = useState<any>(null)
 
   useEffect(() => {
     const loadData = async () => {
@@ -26,7 +26,7 @@ export default function ProfilePage() {
     loadData()
   }, [])
 
-  const formatDate = (d) => {
+  const formatDate = (d: string) => {
     return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
   }
 

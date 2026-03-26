@@ -8,7 +8,7 @@ function SetlistContent() {
   const searchParams = useSearchParams()
   const checkinId = searchParams.get('checkinId')
   const artist = searchParams.get('artist') || 'Unknown Artist'
-  const [songs, setSongs] = useState([])
+  const [songs, setSongs] = useState<any[]>([])
   const [newSong, setNewSong] = useState('')
   const [newNote, setNewNote] = useState('')
   const [showNoteInput, setShowNoteInput] = useState(false)

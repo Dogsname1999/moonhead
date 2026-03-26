@@ -6,8 +6,8 @@ import { supabase } from '@/lib/supabase'
 export default function ShowPage() {
   const router = useRouter()
   const params = useParams()
-  const [show, setShow] = useState(null)
-  const [songs, setSongs] = useState([])
+  const [show, setShow] = useState<any>(null)
+  const [songs, setSongs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -30,7 +30,7 @@ export default function ShowPage() {
     loadShow()
   }, [params.id])
 
-  const formatDate = (d) => {
+  const formatDate = (d: string) => {
     if (!d) return ''
     return new Date(d).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
   }
