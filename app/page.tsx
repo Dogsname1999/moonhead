@@ -14,7 +14,7 @@ export default function Home() {
           style={{ filter: 'brightness(0.85)' }}
         />
         <p className="text-zinc-400 text-lg tracking-wide">
-          you are here. the music is now.
+          The ticket stub. Evolved.
         </p>
       </div>
       <div className="flex flex-col gap-4 w-64">
