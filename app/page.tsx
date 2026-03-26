@@ -7,9 +7,12 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-6">
       <div className="text-center mb-12">
-        <h1 className="text-6xl font-bold tracking-widest mb-3" style={{color: '#F5A623'}}>
-          MOONHEAD
-        </h1>
+        <img
+          src="/moon.png"
+          alt="Moonhead"
+          className="w-48 h-48 object-cover rounded-full mx-auto mb-8"
+          style={{ filter: 'brightness(0.85)' }}
+        />
         <p className="text-zinc-400 text-lg tracking-wide">
           you are here. the music is now.
         </p>
