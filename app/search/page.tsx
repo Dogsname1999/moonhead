@@ -22,9 +22,15 @@ export default function SearchPage() {
   const inputRef = useRef<HTMLInputElement>(null)
   const suggestionsRef = useRef<HTMLDivElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const justSelectedRef = useRef(false)
 
   // Fetch artist suggestions as user types
   useEffect(() => {
+    if (justSelectedRef.current) {
+      justSelectedRef.current = false
+      return
+    }
+
     if (query.trim().length < 2) {
       setSuggestions([])
       setShowSuggestions(false)
@@ -75,7 +81,9 @@ export default function SearchPage() {
   }
 
   const selectArtist = (name: string) => {
+    justSelectedRef.current = true
     setQuery(name)
+    setSuggestions([])
     setShowSuggestions(false)
     // Auto-search immediately
     setTimeout(() => search(name), 50)
