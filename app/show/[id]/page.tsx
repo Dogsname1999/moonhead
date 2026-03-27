@@ -34,7 +34,12 @@ export default function ShowPage() {
 
   const formatDate = (d: string) => {
     if (!d) return ''
-    return new Date(d).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+    const parts = d.split('-')
+    if (parts.length !== 3) return d
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December']
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
+    const date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]))
+    return days[date.getDay()] + ', ' + months[parseInt(parts[1]) - 1] + ' ' + parseInt(parts[2]) + ', ' + parts[0]
   }
 
   if (loading) return (
