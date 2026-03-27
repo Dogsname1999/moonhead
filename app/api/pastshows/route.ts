@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     const startPage = year ? getStartPage(year, totalShows) : 1
     let results: any[] = []
 
-    for (let page = startPage; page <= startPage + 8; page++) {
+    for (let page = Math.max(1, startPage - 3); page <= startPage + 10; page++) {
       const url = `https://api.setlist.fm/rest/1.0/artist/${artistMbid}/setlists?p=${page}`
       const res = await fetch(url, {
         headers: { 'x-api-key': SLF_KEY || '', 'Accept': 'application/json' }
