@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import NavBar from '@/components/NavBar'
+import ShareCard from '@/components/ShareCard'
 
 export default function ShowPage() {
   const router = useRouter()
@@ -102,6 +103,7 @@ export default function ShowPage() {
             style={{ width: '100%', padding: '18px', borderRadius: '999px', fontWeight: 600, fontSize: '16px', border: '1.5px solid #8BA5C0', color: '#5C7A9E', background: 'transparent', cursor: 'pointer' }}>
             Memories
           </button>
+          <ShareCard artist={show.artist} venue={show.venue} city={show.city || ''} date={show.date} />
         </div>
       </div>
     </div>
