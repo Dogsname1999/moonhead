@@ -24,9 +24,11 @@ export default function SearchPage() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const justSelectedRef = useRef(false)
 
-  // Fetch artist suggestions as user types
+  // Fetch artist suggestions as user types — but NOT after a selection or search
+  const searchedRef = useRef(false)
+
   useEffect(() => {
-    if (justSelectedRef.current) {
+    if (justSelectedRef.current || searchedRef.current) {
       justSelectedRef.current = false
       return
     }
@@ -68,7 +70,10 @@ export default function SearchPage() {
   }, [])
 
   const search = async (q: string, lat?: number, lng?: number) => {
+    searchedRef.current = true
+    setSuggestions([])
     setShowSuggestions(false)
+    inputRef.current?.blur()
     setLoading(true)
     try {
       let url = `/api/concerts?query=${encodeURIComponent(q)}`
@@ -82,9 +87,11 @@ export default function SearchPage() {
 
   const selectArtist = (name: string) => {
     justSelectedRef.current = true
+    searchedRef.current = true
     setQuery(name)
     setSuggestions([])
     setShowSuggestions(false)
+    inputRef.current?.blur()
     // Auto-search immediately
     setTimeout(() => search(name), 50)
   }
@@ -152,8 +159,8 @@ export default function SearchPage() {
             ref={inputRef}
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true) }}
+            onChange={(e) => { searchedRef.current = false; setQuery(e.target.value) }}
+            onFocus={() => { if (suggestions.length > 0 && !searchedRef.current) setShowSuggestions(true) }}
             onKeyDown={handleKeyDown}
             placeholder="e.g. Radiohead, Madison Square Garden..."
             style={{ display: 'block', width: '100%', boxSizing: 'border-box', backgroundColor: '#EDE8DF', color: '#2C4A6E', border: '1.5px solid #8BA5C0', borderRadius: '12px', padding: '16px 20px', fontSize: '16px', outline: 'none' }}
