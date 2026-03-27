@@ -1,5 +1,5 @@
 'use client'
-import { useState, Suspense, useEffect } from 'react'
+import { useState, Suspense, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import NavBar from '@/components/NavBar'
@@ -16,6 +16,13 @@ function PastShowContent() {
   const [saved, setSaved] = useState<string[]>([])
   const [mbid, setMbid] = useState('')
   const [myDates, setMyDates] = useState<string[]>([])
+  const [suggestions, setSuggestions] = useState<any[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [highlightIndex, setHighlightIndex] = useState(-1)
+  const justSelectedRef = useRef(false)
+  const searchedRef = useRef(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>()
 
   useEffect(() => {
     const loadMyShows = async () => {
@@ -26,6 +33,30 @@ function PastShowContent() {
     }
     loadMyShows()
   }, [])
+
+  useEffect(() => {
+    if (justSelectedRef.current) { justSelectedRef.current = false; return }
+    if (artist.length < 2) { setSuggestions([]); setShowSuggestions(false); return }
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/artists?q=${encodeURIComponent(artist)}`)
+        const data = await res.json()
+        if (data.artists?.length > 0) { setSuggestions(data.artists); setShowSuggestions(true); setHighlightIndex(-1) }
+        else { setSuggestions([]); setShowSuggestions(false) }
+      } catch { setSuggestions([]); setShowSuggestions(false) }
+    }, 250)
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+  }, [artist])
+
+  const selectArtist = (name: string) => {
+    justSelectedRef.current = true
+    searchedRef.current = true
+    setArtist(name)
+    setSuggestions([])
+    setShowSuggestions(false)
+    inputRef.current?.blur()
+  }
 
   const alreadySaved = (show: any) => {
     if (saved.includes(show.id)) return true
@@ -96,8 +127,30 @@ function PastShowContent() {
         <h2 style={{ fontSize: '28px', fontWeight: 700, letterSpacing: '0.1em', color: '#2C4A6E', marginBottom: '8px', marginTop: 0 }}>I WAS THERE</h2>
         <p style={{ color: '#5C7A9E', fontSize: '14px', marginBottom: '32px', marginTop: 0 }}>Log shows from your past</p>
 
-        <input type="text" value={artist} onChange={(e) => setArtist(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && search()} placeholder="Artist name..."
-          style={{ display: 'block', width: '100%', boxSizing: 'border-box', backgroundColor: '#EDE8DF', color: '#2C4A6E', border: '1.5px solid #8BA5C0', borderRadius: '12px', padding: '16px 20px', fontSize: '16px', outline: 'none', marginBottom: '12px' }} />
+        <div style={{ position: 'relative', marginBottom: '12px' }}>
+          <input ref={inputRef} type="text" value={artist}
+            onChange={(e) => { setArtist(e.target.value); searchedRef.current = false }}
+            onFocus={() => { if (suggestions.length > 0 && !searchedRef.current) setShowSuggestions(true) }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') { if (highlightIndex >= 0 && showSuggestions) { selectArtist(suggestions[highlightIndex].name) } else { setShowSuggestions(false); searchedRef.current = true; search() } }
+              else if (e.key === 'Escape') { setShowSuggestions(false) }
+              else if (e.key === 'ArrowDown' && showSuggestions) { e.preventDefault(); setHighlightIndex(i => Math.min(i + 1, suggestions.length - 1)) }
+              else if (e.key === 'ArrowUp' && showSuggestions) { e.preventDefault(); setHighlightIndex(i => Math.max(i - 1, 0)) }
+            }}
+            placeholder="Artist name..."
+            style={{ display: 'block', width: '100%', boxSizing: 'border-box', backgroundColor: '#EDE8DF', color: '#2C4A6E', border: '1.5px solid #8BA5C0', borderRadius: '12px', padding: '16px 20px', fontSize: '16px', outline: 'none' }} />
+          {showSuggestions && suggestions.length > 0 && (
+            <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, backgroundColor: '#EDE8DF', border: '1.5px solid #8BA5C0', borderRadius: '12px', marginTop: '4px', zIndex: 50, overflow: 'hidden', boxShadow: '0 8px 24px rgba(44,74,110,0.15)' }}>
+              {suggestions.map((s: any, i: number) => (
+                <div key={i} onClick={() => selectArtist(s.name)}
+                  style={{ padding: '14px 20px', cursor: 'pointer', backgroundColor: i === highlightIndex ? '#ddd8cf' : 'transparent', borderBottom: i < suggestions.length - 1 ? '1px solid rgba(139,165,192,0.2)' : 'none' }}>
+                  <p style={{ margin: 0, fontWeight: 600, color: '#2C4A6E', fontSize: '15px' }}>{s.name}</p>
+                  {s.disambiguation && <p style={{ margin: '2px 0 0', fontSize: '12px', color: '#8BA5C0' }}>{s.disambiguation}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         <select value={year} onChange={(e) => setYear(e.target.value)}
           style={{ display: 'block', width: '100%', boxSizing: 'border-box', backgroundColor: '#EDE8DF', color: '#2C4A6E', border: '1.5px solid #8BA5C0', borderRadius: '12px', padding: '16px 20px', fontSize: '16px', outline: 'none', marginBottom: '12px' }}>

@@ -12,6 +12,9 @@ export default function ShowPage() {
   const [songs, setSongs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [archiveUrl, setArchiveUrl] = useState<string | null>(null)
+  const [releases, setReleases] = useState<any[]>([])
+  const [ebaySearches, setEbaySearches] = useState<any[]>([])
+  const [showCollectibles, setShowCollectibles] = useState(false)
 
   useEffect(() => {
     const loadShow = async () => {
@@ -26,6 +29,12 @@ export default function ShowPage() {
           const archiveData = await archiveRes.json()
           const id = archiveData?.response?.docs?.[0]?.identifier
           if (id) setArchiveUrl('https://archive.org/details/' + id)
+        } catch (e) { console.error(e) }
+        try {
+          const collectRes = await fetch(`/api/collectibles?artist=${encodeURIComponent(showData.artist)}&date=${encodeURIComponent(showData.date || '')}`)
+          const collectData = await collectRes.json()
+          setReleases(collectData.releases || [])
+          setEbaySearches(collectData.ebaySearches || [])
         } catch (e) { console.error(e) }
       }
     }
@@ -87,6 +96,56 @@ export default function ShowPage() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+        {(releases.length > 0 || ebaySearches.length > 0) && (
+          <div style={{ marginBottom: '28px' }}>
+            <button onClick={() => setShowCollectibles(!showCollectibles)}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '0 0 16px' }}>
+              <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8BA5C0', margin: 0 }}>Collectibles & Releases</p>
+              <span style={{ color: '#8BA5C0', fontSize: '18px', transform: showCollectibles ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>▼</span>
+            </button>
+            {showCollectibles && (
+              <div>
+                {/* eBay search buttons */}
+                {ebaySearches.length > 0 && (
+                  <div style={{ marginBottom: '20px' }}>
+                    <p style={{ fontSize: '12px', color: '#5C7A9E', marginBottom: '10px', marginTop: 0, fontWeight: 600 }}>Find on eBay</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                      {ebaySearches.map((s: any, i: number) => (
+                        <a key={i} href={s.url} target="_blank" rel="noopener noreferrer"
+                          style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#EDE8DF', borderRadius: '12px', padding: '14px 16px', border: '1px solid #8BA5C0', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#2C4A6E' }}>
+                          <span style={{ fontSize: '18px' }}>{s.emoji}</span>
+                          {s.label}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Discogs releases */}
+                {releases.length > 0 && (
+                  <div>
+                    <p style={{ fontSize: '12px', color: '#5C7A9E', marginBottom: '10px', marginTop: 0, fontWeight: 600 }}>Discography</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {releases.map((r: any, i: number) => (
+                        <a key={i} href={r.url} target="_blank" rel="noopener noreferrer"
+                          style={{ display: 'flex', alignItems: 'center', gap: '14px', backgroundColor: '#EDE8DF', borderRadius: '14px', padding: '12px 16px', border: '1px solid #8BA5C0', textDecoration: 'none' }}>
+                          {r.thumbnail && (
+                            <img src={r.thumbnail} alt="" style={{ width: '52px', height: '52px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }} />
+                          )}
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <p style={{ fontWeight: 600, color: '#2C4A6E', fontSize: '14px', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title}</p>
+                            <p style={{ color: '#8BA5C0', fontSize: '12px', margin: '2px 0 0' }}>
+                              {r.year}{r.format ? ' · ' + r.format : ''}{r.genre ? ' · ' + r.genre : ''}
+                            </p>
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
         {archiveUrl && (
