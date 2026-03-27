@@ -63,7 +63,7 @@ function SetlistContent() {
             <input
               type="text" value={newNote} onChange={(e) => setNewNote(e.target.value)}
               placeholder="Add a note... (optional)"
-              style={{ width: '100%', background: 'transparent', color: '#5C7A9E', fontSize: '14px', outline: 'none', borderTop: '1px solid #8BA5C0', paddingTop: '12px', marginBottom: '16px', boxSizing: 'border-box' }}
+              style={{ width: '100%', background: 'transparent', color: '#5C7A9E', fontSize: '14px', outline: 'none', borderTop: '1px solid #8BA5C0', paddingTop: '12px', marginBottom: '16px', border: 'none', borderTop: '1px solid #8BA5C0', boxSizing: 'border-box' }}
             />
           )}
           <div style={{ display: 'flex', gap: '12px' }}>
