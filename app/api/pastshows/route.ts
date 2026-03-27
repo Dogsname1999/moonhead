@@ -23,24 +23,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ results: [], error: 'Artist not found' })
     }
 
-    const getStartPage = (y: string) => {
+    const getStartPage = (y: string, totalShows: number) => {
       const yr = parseInt(y)
-      if (yr >= 2020) return 1
-      if (yr >= 2015) return 1
-      if (yr >= 2010) return 2
-      if (yr >= 2005) return 3
-      if (yr >= 2000) return 4
-      if (yr >= 1995) return 5
-      if (yr >= 1993) return 8
-      if (yr >= 1992) return 12
-      if (yr >= 1991) return 14
-      if (yr >= 1989) return 18
-      if (yr >= 1987) return 22
-      if (yr >= 1985) return 26
-      return 30
+      const currentYear = new Date().getFullYear()
+      const yearsBack = currentYear - yr
+      const showsPerYear = totalShows / 50
+      const approxPage = Math.floor((yearsBack * showsPerYear) / 20)
+      return Math.max(1, approxPage - 2)
     }
 
-    const startPage = year ? getStartPage(year) : 1
+    const totalRes = await fetch(
+      'https://api.setlist.fm/rest/1.0/artist/' + artistMbid + '/setlists?p=1',
+      { headers: { 'x-api-key': SLF_KEY || '', 'Accept': 'application/json' } }
+    )
+    const totalData = await totalRes.json()
+    const totalShows = totalData.total || 100
+    const startPage = year ? getStartPage(year, totalShows) : 1
     let results: any[] = []
 
     for (let page = startPage; page <= startPage + 8; page++) {
