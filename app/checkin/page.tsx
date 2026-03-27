@@ -3,6 +3,7 @@ import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import NavBar from '@/components/NavBar'
+import ShareCard from '@/components/ShareCard'
 
 function CheckInContent() {
   const router = useRouter()
@@ -66,6 +67,7 @@ function CheckInContent() {
             </button>
             <button onClick={() => router.push(`/whohere?artist=${encodeURIComponent(artist)}&date=${date}&venue=${encodeURIComponent(venue)}&city=${encodeURIComponent(city)}`)} style={secondaryBtn}>See Who's Here 👥</button>
             <button onClick={() => router.push('/profile')} style={secondaryBtn}>View My Shows 👤</button>
+            <ShareCard artist={artist} venue={venue} city={city} date={date} />
           </>
         )}
       </div>
