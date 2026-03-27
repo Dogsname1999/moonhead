@@ -64,7 +64,7 @@ function CheckInContent() {
               style={{ width: '100%', padding: '16px', borderRadius: '999px', fontWeight: 600, fontSize: '16px', backgroundColor: '#2C4A6E', color: '#F5F0E8', border: 'none', cursor: 'pointer', marginBottom: '12px' }}>
               Track the Set List 🎵
             </button>
-            <button onClick={() => router.push('/whohere')} style={secondaryBtn}>See Who's Here 👥</button>
+            <button onClick={() => router.push(`/whohere?artist=${encodeURIComponent(artist)}&date=${date}&venue=${encodeURIComponent(venue)}&city=${encodeURIComponent(city)}`)} style={secondaryBtn}>See Who's Here 👥</button>
             <button onClick={() => router.push('/profile')} style={secondaryBtn}>View My Shows 👤</button>
           </>
         )}
