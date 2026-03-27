@@ -20,9 +20,7 @@ export default function ShowPage() {
       setLoading(false)
       if (showData) {
         try {
-          const dateStr = showData.date || ''
-          const artistStr = showData.artist || ''
-          const archiveRes = await fetch('https://archive.org/advancedsearch.php?q=' + encodeURIComponent(artistStr + ' ' + dateStr) + '&fl=identifier&sort=downloads+desc&output=json&rows=1')
+          const archiveRes = await fetch('https://archive.org/advancedsearch.php?q=' + encodeURIComponent(showData.artist + ' ' + showData.date) + '&fl=identifier&sort=downloads+desc&output=json&rows=1')
           const archiveData = await archiveRes.json()
           const id = archiveData?.response?.docs?.[0]?.identifier
           if (id) setArchiveUrl('https://archive.org/details/' + id)
@@ -43,66 +41,78 @@ export default function ShowPage() {
   }
 
   if (loading) return (
-    <main className="min-h-screen bg-black text-white flex items-center justify-center">
-      <p className="text-zinc-500">Loading show...</p>
+    <main className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F5F0E8' }}>
+      <p style={{ color: '#8BA5C0' }}>Loading show...</p>
     </main>
   )
 
   if (!show) return (
-    <main className="min-h-screen bg-black text-white flex items-center justify-center">
-      <p className="text-zinc-500">Show not found</p>
+    <main className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F5F0E8' }}>
+      <p style={{ color: '#8BA5C0' }}>Show not found</p>
     </main>
   )
 
   return (
-    <main className="min-h-screen bg-black text-white px-6 py-12">
-      <div className="max-w-lg mx-auto">
-        <button onClick={() => router.push('/profile')} className="text-zinc-500 text-sm mb-8 hover:text-white transition">My Shows</button>
-        <div className="mb-8">
-          <p className="text-zinc-500 text-xs uppercase tracking-widest mb-2">You were there</p>
-          <h2 className="text-4xl font-bold mb-2" style={{ color: '#F5A623' }}>{show.artist}</h2>
-          <p className="text-zinc-400">{show.venue}{show.city ? ' - ' + show.city : ''}</p>
-          <p className="text-zinc-500 text-sm mt-1">{formatDate(show.date)}</p>
+    <main className="min-h-screen px-6 py-12" style={{ backgroundColor: '#F5F0E8' }}>
+      <div style={{ maxWidth: '480px', margin: '0 auto' }}>
+        <button onClick={() => router.push('/profile')} style={{ background: 'none', border: 'none', color: '#8BA5C0', fontSize: '14px', cursor: 'pointer', marginBottom: '32px', padding: 0 }}>← My Shows</button>
+
+        {/* Show header */}
+        <div style={{ marginBottom: '32px' }}>
+          <p className="text-xs uppercase tracking-widest" style={{ color: '#8BA5C0', marginBottom: '8px' }}>You were there</p>
+          <h2 className="text-4xl font-bold" style={{ color: '#2C4A6E', marginBottom: '8px' }}>{show.artist}</h2>
+          <p style={{ color: '#5C7A9E' }}>{show.venue}{show.city ? ' — ' + show.city : ''}</p>
+          <p className="text-sm" style={{ color: '#8BA5C0', marginTop: '4px' }}>{formatDate(show.date)}</p>
         </div>
+
+        {/* Note */}
         {show.note && (
-          <div className="bg-zinc-900 rounded-2xl p-5 border border-zinc-800 mb-6">
-            <p className="text-zinc-500 text-xs uppercase tracking-widest mb-3">Your note</p>
-            <p className="text-white leading-relaxed">{show.note}</p>
+          <div style={{ backgroundColor: '#EDE8DF', borderRadius: '16px', padding: '20px', border: '1px solid #8BA5C0', marginBottom: '24px' }}>
+            <p className="text-xs uppercase tracking-widest" style={{ color: '#8BA5C0', marginBottom: '12px' }}>Your note</p>
+            <p style={{ color: '#2C4A6E', lineHeight: 1.6 }}>{show.note}</p>
           </div>
         )}
+
+        {/* Set list */}
         {songs.length > 0 && (
-          <div className="mb-8">
-            <div className="flex justify-between items-center mb-4">
-              <p className="text-zinc-500 text-xs uppercase tracking-widest">Set List</p>
-              <span className="text-zinc-600 text-xs">{songs.length} songs</span>
+          <div style={{ marginBottom: '32px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <p className="text-xs uppercase tracking-widest" style={{ color: '#8BA5C0' }}>Set List</p>
+              <span className="text-xs" style={{ color: '#8BA5C0' }}>{songs.length} songs</span>
             </div>
-            <div className="space-y-2">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {songs.map((song, index) => (
-                <div key={song.id} className="flex items-start gap-4 bg-zinc-900 rounded-2xl p-4 border border-zinc-800">
-                  <span className="text-zinc-600 text-sm font-mono mt-0.5 w-6 text-right shrink-0">{index + 1}</span>
-                  <div className="flex-1">
-                    <p className="font-semibold text-white">{song.song_title}</p>
-                    {song.note && <p className="text-zinc-400 text-sm mt-1">{song.note}</p>}
+                <div key={song.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', backgroundColor: '#EDE8DF', borderRadius: '14px', padding: '16px', border: '1px solid #8BA5C0' }}>
+                  <span style={{ color: '#8BA5C0', fontSize: '13px', fontFamily: 'monospace', marginTop: '2px', width: '24px', textAlign: 'right', flexShrink: 0 }}>{index + 1}</span>
+                  <div style={{ flex: 1 }}>
+                    <p className="font-semibold" style={{ color: '#2C4A6E' }}>{song.song_title}</p>
+                    {song.note && <p className="text-sm" style={{ color: '#5C7A9E', marginTop: '4px' }}>{song.note}</p>}
                   </div>
                 </div>
               ))}
             </div>
           </div>
         )}
+
+        {/* Archive link */}
         {archiveUrl && (
-          <a href={archiveUrl} target="_blank" rel="noopener noreferrer"
-            className="block w-full py-4 rounded-full text-center font-semibold border border-zinc-700 text-zinc-400 hover:text-white hover:border-white transition mb-4">
-            Listen on Archive.org
+          <a href={archiveUrl} target="_blank" rel="noopener noreferrer" style={{
+            display: 'block', width: '100%', padding: '16px', borderRadius: '999px',
+            textAlign: 'center', fontWeight: 600, border: '1.5px solid #8BA5C0',
+            color: '#5C7A9E', textDecoration: 'none', marginBottom: '24px', boxSizing: 'border-box',
+          }}>
+            🎙 Listen on Archive.org
           </a>
         )}
-        <div className="space-y-4">
+
+        {/* Actions */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <button onClick={() => router.push('/setlist?checkinId=' + show.id + '&artist=' + encodeURIComponent(show.artist))}
-            className="w-full py-4 rounded-full font-semibold border-2 transition"
-            style={{ borderColor: '#F5A623', color: '#F5A623' }}>
+            style={{ width: '100%', padding: '16px', borderRadius: '999px', fontWeight: 600, backgroundColor: '#2C4A6E', color: '#F5F0E8', border: 'none', cursor: 'pointer' }}>
             {songs.length > 0 ? 'Edit Set List' : 'Track Set List'}
           </button>
           <button onClick={() => router.push('/memories')}
-            className="w-full py-4 rounded-full font-semibold border border-zinc-700 text-zinc-400 hover:text-white hover:border-white transition">
+            style={{ width: '100%', padding: '16px', borderRadius: '999px', fontWeight: 600, border: '1.5px solid #8BA5C0', color: '#5C7A9E', background: 'transparent', cursor: 'pointer' }}>
             Memories
           </button>
         </div>

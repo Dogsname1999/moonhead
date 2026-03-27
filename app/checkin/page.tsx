@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, Suspense } from 'react'
+import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -28,82 +28,77 @@ function CheckInContent() {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         const { data, error } = await supabase.from('checkins').insert({
-          user_id: user.id,
-          artist,
-          venue,
-          city,
-          date,
-          note,
-          concert_id: concertId,
+          user_id: user.id, artist, venue, city, date, note, concert_id: concertId,
         }).select().single()
         if (data) setCheckinId(data.id)
       }
-    } catch (e) {
-      console.error(e)
-    }
+    } catch (e) { console.error(e) }
     setChecked(true)
     setLoading(false)
   }
 
+  const secondaryBtn = {
+    width: '100%', padding: '16px', borderRadius: '999px', fontWeight: 600,
+    fontSize: '16px', border: '1.5px solid #8BA5C0', color: '#5C7A9E',
+    background: 'transparent', cursor: 'pointer', marginBottom: '12px', transition: 'all 0.2s',
+  }
+
   return (
-    <main className="min-h-screen bg-black text-white px-6 py-12">
-      <div className="max-w-lg mx-auto">
-        <button onClick={() => router.back()} className="text-zinc-500 text-sm mb-8 hover:text-white transition">
-          ← Back
-        </button>
+    <main className="min-h-screen px-6 py-12" style={{ backgroundColor: '#F5F0E8' }}>
+      <div style={{ maxWidth: '480px', margin: '0 auto' }}>
+        <button onClick={() => router.back()} style={{
+          background: 'none', border: 'none', color: '#8BA5C0', fontSize: '14px',
+          cursor: 'pointer', marginBottom: '32px', padding: 0,
+        }}>← Back</button>
 
         {!checked ? (
           <div className="text-center">
-            <p className="text-zinc-400 text-xs uppercase tracking-widest mb-2">You're about to check in to</p>
-            <h2 className="text-4xl font-bold mb-2" style={{ color: '#F5A623' }}>{artist}</h2>
-            <p className="text-zinc-400 mb-1">{venue}{city ? ` · ${city}` : ''}</p>
-            <p className="text-zinc-500 text-sm mb-10">{formatDate(date)}</p>
+            <p className="text-xs uppercase tracking-widest" style={{ color: '#8BA5C0', marginBottom: '8px' }}>
+              You're about to check in to
+            </p>
+            <h2 className="text-4xl font-bold" style={{ color: '#2C4A6E', marginBottom: '8px' }}>{artist}</h2>
+            <p style={{ color: '#5C7A9E', marginBottom: '4px' }}>{venue}{city ? ` · ${city}` : ''}</p>
+            <p className="text-sm" style={{ color: '#8BA5C0', marginBottom: '40px' }}>{formatDate(date)}</p>
 
-            <div className="mb-8">
-              <textarea
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="First thoughts? Opening act? How are you feeling..."
-                className="w-full bg-zinc-900 text-white border border-zinc-700 rounded-2xl px-5 py-4 text-base focus:outline-none resize-none h-32"
-              />
-            </div>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="First thoughts? Opening act? How are you feeling..."
+              style={{
+                width: '100%', backgroundColor: '#EDE8DF', color: '#2C4A6E',
+                border: '1.5px solid #8BA5C0', borderRadius: '16px',
+                padding: '20px', fontSize: '16px', outline: 'none',
+                resize: 'none', height: '128px', marginBottom: '24px',
+                boxSizing: 'border-box',
+              }}
+            />
 
-            <button
-              onClick={handleCheckIn}
-              disabled={loading}
-              className="w-full py-5 rounded-full font-bold text-xl transition"
-              style={{ backgroundColor: '#F5A623', color: '#000' }}
-            >
+            <button onClick={handleCheckIn} disabled={loading} style={{
+              width: '100%', padding: '20px', borderRadius: '999px', fontWeight: 700,
+              fontSize: '20px', backgroundColor: '#2C4A6E', color: '#F5F0E8',
+              border: 'none', cursor: 'pointer', transition: 'background-color 0.2s',
+            }}>
               {loading ? 'Checking in...' : "I'M HERE 🎶"}
             </button>
           </div>
         ) : (
           <div className="text-center">
-            <div className="text-7xl mb-6">🌕</div>
-            <h2 className="text-3xl font-bold mb-2" style={{ color: '#F5A623' }}>YOU'RE CHECKED IN</h2>
-            <p className="text-zinc-400 mb-2">{artist}</p>
-            <p className="text-zinc-500 text-sm mb-12">{venue}{city ? ` · ${city}` : ''}</p>
+            <div style={{ fontSize: '72px', marginBottom: '24px' }}>🌕</div>
+            <h2 className="text-3xl font-bold" style={{ color: '#2C4A6E', marginBottom: '8px' }}>YOU'RE CHECKED IN</h2>
+            <p style={{ color: '#5C7A9E', marginBottom: '4px' }}>{artist}</p>
+            <p className="text-sm" style={{ color: '#8BA5C0', marginBottom: '48px' }}>{venue}{city ? ` · ${city}` : ''}</p>
 
-            <div className="space-y-4">
-              <button
-                onClick={() => router.push(`/setlist?checkinId=${checkinId}&artist=${encodeURIComponent(artist)}`)}
-                className="w-full py-4 rounded-full font-semibold border-2 transition"
-                style={{ borderColor: '#F5A623', color: '#F5A623' }}
-              >
+            <div>
+              <button onClick={() => router.push(`/setlist?checkinId=${checkinId}&artist=${encodeURIComponent(artist)}`)}
+                style={{
+                  width: '100%', padding: '16px', borderRadius: '999px', fontWeight: 600,
+                  fontSize: '16px', backgroundColor: '#2C4A6E', color: '#F5F0E8',
+                  border: 'none', cursor: 'pointer', marginBottom: '12px',
+                }}>
                 Track the Set List 🎵
               </button>
-              <button
-                onClick={() => router.push('/whohere')}
-                className="w-full py-4 rounded-full font-semibold border border-zinc-700 text-zinc-400 hover:text-white hover:border-white transition"
-              >
-                See Who's Here 👥
-              </button>
-              <button
-                onClick={() => router.push('/profile')}
-                className="w-full py-4 rounded-full font-semibold border border-zinc-700 text-zinc-400 hover:text-white hover:border-white transition"
-              >
-                View My Shows 👤
-              </button>
+              <button onClick={() => router.push('/whohere')} style={secondaryBtn}>See Who's Here 👥</button>
+              <button onClick={() => router.push('/profile')} style={secondaryBtn}>View My Shows 👤</button>
             </div>
           </div>
         )}
@@ -113,9 +108,5 @@ function CheckInContent() {
 }
 
 export default function CheckInPage() {
-  return (
-    <Suspense>
-      <CheckInContent />
-    </Suspense>
-  )
+  return <Suspense><CheckInContent /></Suspense>
 }

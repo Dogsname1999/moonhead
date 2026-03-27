@@ -26,17 +26,6 @@ function PastShowContent() {
     loadMyShows()
   }, [])
 
-  const alreadySaved = (show: any) => {
-    if (!show.date || myDates.length === 0) return false
-    const parts = show.date.split('-')
-    if (parts.length !== 3) return false
-    const iso = parts[2] + '-' + parts[1] + '-' + parts[0]
-    const key1 = show.artist + '|' + iso
-    const key2 = show.artist + '|' + show.date
-    return myDates.some(d => d === key1 || d === key2 || d.includes(iso) || d.includes(show.date))
-  }
-
-
   const search = async () => {
     if (!artist.trim()) return
     setLoading(true)
@@ -57,10 +46,7 @@ function PastShowContent() {
     const parts = d.split('-')
     if (parts.length !== 3) return d
     const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-    const day = parseInt(parts[0])
-    const month = parseInt(parts[1]) - 1
-    const year = parts[2]
-    return months[month] + ' ' + day + ', ' + year
+    return months[parseInt(parts[1]) - 1] + ' ' + parseInt(parts[0]) + ', ' + parts[2]
   }
 
   const iWasThere = async (show: any) => {
@@ -68,100 +54,161 @@ function PastShowContent() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/auth'); return }
-      console.log('RAW DATE FROM SETLIST:', show.date)
       const dp = show.date ? show.date.split('-') : []
       const dateFormatted = dp.length === 3 ? dp[2] + '-' + dp[1] + '-' + dp[0] : show.date || ''
-      console.log('DATE FORMATTED:', dateFormatted)
       const { data: checkin } = await supabase.from('checkins').insert({
         user_id: user.id, artist: show.artist, venue: show.venue,
         city: show.city + (show.state ? ', ' + show.state : ''),
         date: dateFormatted, note: '', concert_id: show.id, source: 'setlist.fm'
       }).select().single()
-      if (checkin && show.songs && show.songs.length > 0) {
-        const songRows = show.songs.map((song: any, index: number) => ({
+      if (checkin && show.songs?.length > 0) {
+        await supabase.from('setlists').insert(show.songs.map((song: any, i: number) => ({
           checkin_id: checkin.id, user_id: user.id,
-          song_title: song.name, note: song.info || '', position: index + 1
-        }))
-        await supabase.from('setlists').insert(songRows)
+          song_title: song.name, note: song.info || '', position: i + 1
+        })))
       }
-      setSaved((prev) => [...prev, show.id])
+      setSaved(prev => [...prev, show.id])
       if (checkin) setTimeout(() => router.push('/show/' + checkin.id), 800)
     } catch (e) { console.error(e) }
     setSaving('')
   }
 
   return (
-    <main className="min-h-screen bg-black text-white px-6 py-12">
-      <div className="max-w-lg mx-auto">
-        <button onClick={() => router.back()} className="text-zinc-500 text-sm mb-8 hover:text-white transition">Back</button>
-        <h2 className="text-3xl font-bold tracking-widest mb-2" style={{ color: '#F5A623' }}>I WAS THERE</h2>
-        <p className="text-zinc-400 text-sm mb-8">Log shows from your past</p>
-        <div className="space-y-4 mb-6">
-          <input type="text" value={artist} onChange={(e) => setArtist(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && search()}
-            placeholder="Artist name..."
-            className="w-full bg-zinc-900 text-white border border-zinc-700 rounded-xl px-5 py-4 text-lg focus:outline-none" />
-          <select value={year} onChange={(e) => setYear(e.target.value)}
-            className="w-full bg-zinc-900 text-white border border-zinc-700 rounded-xl px-5 py-4 text-lg focus:outline-none">
-            <option value="">All years</option>
-            {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-          </select>
-          <button onClick={search} className="w-full py-4 rounded-full font-semibold text-lg transition"
-            style={{ backgroundColor: '#F5A623', color: '#000' }}>
-            {loading ? 'Searching...' : 'Find Shows'}
-          </button>
-        </div>
+    <div style={{ minHeight: '100vh', backgroundColor: '#F5F0E8', padding: '48px 24px' }}>
+      <div style={{ maxWidth: '480px', margin: '0 auto' }}>
+
+        <button
+          onClick={() => router.back()}
+          style={{ background: 'none', border: 'none', color: '#8BA5C0', fontSize: '14px', cursor: 'pointer', marginBottom: '32px', padding: 0 }}
+        >
+          ← Back
+        </button>
+
+        <h2 style={{ fontSize: '28px', fontWeight: 700, letterSpacing: '0.1em', color: '#2C4A6E', marginBottom: '8px', marginTop: 0 }}>
+          I WAS THERE
+        </h2>
+        <p style={{ color: '#5C7A9E', fontSize: '14px', marginBottom: '32px', marginTop: 0 }}>
+          Log shows from your past
+        </p>
+
+        <input
+          type="text"
+          value={artist}
+          onChange={(e) => setArtist(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && search()}
+          placeholder="Artist name..."
+          style={{
+            display: 'block', width: '100%', boxSizing: 'border-box',
+            backgroundColor: '#EDE8DF', color: '#2C4A6E',
+            border: '1.5px solid #8BA5C0', borderRadius: '12px',
+            padding: '16px 20px', fontSize: '16px', outline: 'none', marginBottom: '12px',
+          }}
+        />
+
+        <select
+          value={year}
+          onChange={(e) => setYear(e.target.value)}
+          style={{
+            display: 'block', width: '100%', boxSizing: 'border-box',
+            backgroundColor: '#EDE8DF', color: '#2C4A6E',
+            border: '1.5px solid #8BA5C0', borderRadius: '12px',
+            padding: '16px 20px', fontSize: '16px', outline: 'none', marginBottom: '12px',
+          }}
+        >
+          <option value="">All years</option>
+          {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+        </select>
+
+        <button
+          onClick={search}
+          style={{
+            display: 'block', width: '100%', boxSizing: 'border-box',
+            padding: '16px', borderRadius: '999px', fontWeight: 600,
+            fontSize: '16px', backgroundColor: '#2C4A6E', color: '#F5F0E8',
+            border: 'none', cursor: 'pointer', marginBottom: '32px',
+          }}
+        >
+          {loading ? 'Searching…' : 'Find Shows'}
+        </button>
+
         {results.length > 0 && (
-          <div className="space-y-4">
-            <p className="text-zinc-500 text-xs uppercase tracking-widest">{results.length} shows found</p>
+          <div>
+            <p style={{ color: '#8BA5C0', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '16px' }}>
+              {results.length} shows found
+            </p>
             {results.map((show) => (
-              <div key={show.id} className="bg-zinc-900 rounded-2xl p-5 border border-zinc-800">
-                <div className="flex justify-between items-start mb-2">
+              <div key={show.id} style={{
+                backgroundColor: '#EDE8DF', borderRadius: '16px',
+                padding: '20px', border: '1px solid #8BA5C0', marginBottom: '12px',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
                   <div>
-                    <h3 className="font-bold text-lg">{show.artist}</h3>
-                    <p className="text-zinc-400 text-sm">{show.venue}</p>
-                    <p className="text-zinc-500 text-sm">{show.city}{show.state ? ', ' + show.state : ''}</p>
-                    <p className="text-sm mt-1" style={{ color: '#F5A623' }}>{formatDate(show.date)}</p>
-                    {show.tour && <p className="text-zinc-600 text-xs mt-1">{show.tour}</p>}
+                    <p style={{ fontWeight: 700, fontSize: '18px', color: '#2C4A6E', margin: 0 }}>{show.artist}</p>
+                    <p style={{ color: '#5C7A9E', fontSize: '14px', margin: '2px 0 0' }}>{show.venue}</p>
+                    <p style={{ color: '#8BA5C0', fontSize: '14px', margin: '2px 0 0' }}>{show.city}{show.state ? ', ' + show.state : ''}</p>
+                    <p style={{ color: '#2C4A6E', fontSize: '14px', fontWeight: 500, margin: '6px 0 0' }}>{formatDate(show.date)}</p>
                   </div>
-                  <span className="text-zinc-600 text-xs mt-1">{show.totalSongs} songs</span>
+                  <span style={{ color: '#8BA5C0', fontSize: '12px' }}>{show.totalSongs} songs</span>
                 </div>
-                {show.info && <p className="text-zinc-500 text-xs italic mb-3 leading-relaxed">{show.info}</p>}
-                {show.songs && show.songs.length > 0 && (
-                  <div className="mb-4">
-                    <p className="text-zinc-600 text-xs uppercase tracking-widest mb-2">Set List Preview</p>
-                    <div className="flex flex-wrap gap-1">
+
+                {show.songs?.length > 0 && (
+                  <div style={{ marginBottom: '16px' }}>
+                    <p style={{ color: '#8BA5C0', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px' }}>
+                      Set List Preview
+                    </p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                       {show.songs.slice(0, 6).map((song: any, i: number) => (
-                        <span key={i} className="text-xs bg-zinc-800 text-zinc-400 px-2 py-1 rounded-full">{song.name}</span>
+                        <span key={i} style={{ fontSize: '12px', backgroundColor: '#F5F0E8', color: '#5C7A9E', padding: '4px 10px', borderRadius: '999px' }}>
+                          {song.name}
+                        </span>
                       ))}
-                      {show.songs.length > 6 && <span className="text-xs text-zinc-600 px-2 py-1">+{show.songs.length - 6} more</span>}
+                      {show.songs.length > 6 && (
+                        <span style={{ fontSize: '12px', color: '#8BA5C0', padding: '4px 8px' }}>+{show.songs.length - 6} more</span>
+                      )}
                     </div>
                   </div>
                 )}
+
                 {show.archiveUrl && (
-                  <a href={show.archiveUrl} target="_blank" rel="noopener noreferrer"
-                    className="block w-full py-3 rounded-full text-center text-sm font-semibold border border-zinc-700 text-zinc-400 hover:text-white hover:border-white transition mb-3">
-                    Listen on Archive.org
+                  <a href={show.archiveUrl} target="_blank" rel="noopener noreferrer" style={{
+                    display: 'block', width: '100%', boxSizing: 'border-box',
+                    padding: '12px', borderRadius: '999px', textAlign: 'center',
+                    fontSize: '14px', fontWeight: 600, border: '1.5px solid #8BA5C0',
+                    color: '#5C7A9E', textDecoration: 'none', marginBottom: '10px',
+                  }}>
+                    🎙 Listen on Archive.org
                   </a>
                 )}
+
                 {saved.includes(show.id) ? (
-                  <div className="w-full py-3 rounded-full text-center text-sm font-semibold bg-zinc-800 text-zinc-500">Saved to My Shows</div>
+                  <div style={{
+                    padding: '12px', borderRadius: '999px', textAlign: 'center',
+                    fontSize: '14px', fontWeight: 600, backgroundColor: '#F5F0E8',
+                    color: '#8BA5C0', border: '1px solid #8BA5C0',
+                  }}>
+                    ✓ Saved to My Shows
+                  </div>
                 ) : (
-                  <button onClick={() => iWasThere(show)} disabled={saving === show.id}
-                    className="w-full py-3 rounded-full font-semibold transition"
-                    style={{ backgroundColor: saving === show.id ? '#c47d0e' : '#F5A623', color: '#000' }}>
-                    {saving === show.id ? 'Saving...' : 'I Was There'}
+                  <button onClick={() => iWasThere(show)} disabled={saving === show.id} style={{
+                    width: '100%', padding: '12px', borderRadius: '999px', fontWeight: 600,
+                    fontSize: '14px', backgroundColor: saving === show.id ? '#5C7A9E' : '#2C4A6E',
+                    color: '#F5F0E8', border: 'none', cursor: 'pointer',
+                  }}>
+                    {saving === show.id ? 'Saving…' : 'I Was There 🌕'}
                   </button>
                 )}
               </div>
             ))}
           </div>
         )}
+
         {!loading && results.length === 0 && artist && (
-          <p className="text-zinc-500 text-center mt-8">No shows found. Try a different artist or year.</p>
+          <p style={{ color: '#8BA5C0', textAlign: 'center', marginTop: '32px' }}>
+            No shows found. Try a different artist or year.
+          </p>
         )}
       </div>
-    </main>
+    </div>
   )
 }
 

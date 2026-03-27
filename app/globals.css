@@ -1,26 +1,52 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --moon-bg:        #F5F0E8;
+  --moon-primary:   #2C4A6E;
+  --moon-secondary: #5C7A9E;
+  --moon-card:      #EDE8DF;
+  --moon-muted:     #8BA5C0;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--moon-bg);
+  color: var(--moon-primary);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Card base */
+.moon-card {
+  background-color: var(--moon-card);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px rgba(44, 74, 110, 0.08);
+}
+
+/* Button base */
+.moon-btn {
+  background-color: var(--moon-primary);
+  color: #fff;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1.25rem;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+.moon-btn:hover {
+  background-color: var(--moon-secondary);
+}
+
+/* Input base */
+.moon-input {
+  background-color: var(--moon-bg);
+  border: 1.5px solid var(--moon-muted);
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  color: var(--moon-primary);
+  width: 100%;
+}
+.moon-input:focus {
+  outline: none;
+  border-color: var(--moon-primary);
 }

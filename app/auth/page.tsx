@@ -17,107 +17,79 @@ export default function AuthPage() {
     setLoading(true)
     setError('')
     setMessage('')
-
     if (mode === 'signup') {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-      })
-      if (error) {
-        setError(error.message)
-      } else if (data.user) {
-        await supabase.from('profiles').insert({
-          id: data.user.id,
-          username,
-        })
+      const { data, error } = await supabase.auth.signUp({ email, password })
+      if (error) { setError(error.message) }
+      else if (data.user) {
+        await supabase.from('profiles').insert({ id: data.user.id, username })
         setMessage('Check your email to confirm your account!')
       }
     } else {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-      if (error) {
-        setError(error.message)
-      } else {
-        router.push('/')
-      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) { setError(error.message) } else { router.push('/') }
     }
     setLoading(false)
   }
 
+  const inputStyle = {
+    width: '100%', backgroundColor: '#EDE8DF', color: '#2C4A6E',
+    border: '1.5px solid #8BA5C0', borderRadius: '12px',
+    padding: '16px 20px', fontSize: '16px', outline: 'none',
+    marginBottom: '12px', display: 'block',
+  }
+
   return (
-    <main className="min-h-screen bg-black text-white flex flex-col items-center justify-center px-6">
-      <div className="w-full max-w-sm">
-        <h1 className="text-4xl font-bold tracking-widest text-center mb-2" style={{ color: '#F5A623' }}>
+    <main className="min-h-screen flex flex-col items-center justify-center px-6" style={{ backgroundColor: '#F5F0E8' }}>
+      <div style={{ width: '100%', maxWidth: '360px' }}>
+        <h1 className="text-4xl font-bold tracking-widest text-center" style={{ color: '#2C4A6E', marginBottom: '8px' }}>
           MOONHEAD
         </h1>
-        <p className="text-zinc-500 text-center text-sm mb-10 tracking-wide">
+        <p className="text-center text-sm" style={{ color: '#8BA5C0', marginBottom: '40px', letterSpacing: '0.05em' }}>
           {mode === 'login' ? 'Welcome back.' : 'Join the show.'}
         </p>
 
         {/* Toggle */}
-        <div className="flex bg-zinc-900 rounded-full p-1 mb-8 border border-zinc-800">
-          <button
-            onClick={() => setMode('login')}
-            className="flex-1 py-2 rounded-full text-sm font-semibold transition"
-            style={mode === 'login' ? { backgroundColor: '#F5A623', color: '#000' } : { color: '#71717a' }}
-          >
-            Log In
-          </button>
-          <button
-            onClick={() => setMode('signup')}
-            className="flex-1 py-2 rounded-full text-sm font-semibold transition"
-            style={mode === 'signup' ? { backgroundColor: '#F5A623', color: '#000' } : { color: '#71717a' }}
-          >
-            Sign Up
-          </button>
+        <div style={{ display: 'flex', backgroundColor: '#EDE8DF', borderRadius: '999px', padding: '4px', marginBottom: '32px', border: '1.5px solid #8BA5C0' }}>
+          <button onClick={() => setMode('login')} style={{
+            flex: 1, padding: '10px', borderRadius: '999px', fontSize: '14px', fontWeight: 600,
+            backgroundColor: mode === 'login' ? '#2C4A6E' : 'transparent',
+            color: mode === 'login' ? '#F5F0E8' : '#8BA5C0',
+            border: 'none', cursor: 'pointer', transition: 'all 0.2s',
+          }}>Log In</button>
+          <button onClick={() => setMode('signup')} style={{
+            flex: 1, padding: '10px', borderRadius: '999px', fontSize: '14px', fontWeight: 600,
+            backgroundColor: mode === 'signup' ? '#2C4A6E' : 'transparent',
+            color: mode === 'signup' ? '#F5F0E8' : '#8BA5C0',
+            border: 'none', cursor: 'pointer', transition: 'all 0.2s',
+          }}>Sign Up</button>
         </div>
 
         {/* Fields */}
-        <div className="space-y-4 mb-6">
-          {mode === 'signup' && (
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Username"
-              className="w-full bg-zinc-900 text-white border border-zinc-700 rounded-xl px-5 py-4 focus:outline-none"
-            />
-          )}
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email"
-            className="w-full bg-zinc-900 text-white border border-zinc-700 rounded-xl px-5 py-4 focus:outline-none"
-          />
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
-            className="w-full bg-zinc-900 text-white border border-zinc-700 rounded-xl px-5 py-4 focus:outline-none"
-            onKeyDown={(e) => e.key === 'Enter' && handleAuth()}
-          />
-        </div>
+        {mode === 'signup' && (
+          <input type="text" value={username} onChange={(e) => setUsername(e.target.value)}
+            placeholder="Username" style={inputStyle} />
+        )}
+        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+          placeholder="Email" style={inputStyle} />
+        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+          placeholder="Password" style={inputStyle}
+          onKeyDown={(e) => e.key === 'Enter' && handleAuth()} />
 
-        {error && <p className="text-red-400 text-sm mb-4 text-center">{error}</p>}
-        {message && <p className="text-green-400 text-sm mb-4 text-center">{message}</p>}
+        {error && <p className="text-sm text-center" style={{ color: '#c0392b', marginBottom: '16px' }}>{error}</p>}
+        {message && <p className="text-sm text-center" style={{ color: '#27ae60', marginBottom: '16px' }}>{message}</p>}
 
-        <button
-          onClick={handleAuth}
-          disabled={loading}
-          className="w-full py-4 rounded-full font-bold text-lg transition"
-          style={{ backgroundColor: '#F5A623', color: '#000' }}
-        >
+        <button onClick={handleAuth} disabled={loading} style={{
+          width: '100%', padding: '16px', borderRadius: '999px', fontWeight: 700,
+          fontSize: '18px', backgroundColor: '#2C4A6E', color: '#F5F0E8',
+          border: 'none', cursor: 'pointer', marginBottom: '12px', transition: 'background-color 0.2s',
+        }}>
           {loading ? '...' : mode === 'login' ? 'Log In' : 'Create Account'}
         </button>
 
-        <button
-          onClick={() => router.push('/')}
-          className="w-full mt-4 py-3 text-zinc-500 text-sm hover:text-white transition"
-        >
+        <button onClick={() => router.push('/')} style={{
+          width: '100%', padding: '12px', fontSize: '14px', color: '#8BA5C0',
+          background: 'none', border: 'none', cursor: 'pointer',
+        }}>
           Continue without account
         </button>
       </div>

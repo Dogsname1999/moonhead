@@ -30,23 +30,15 @@ export default function SearchPage() {
       const res = await fetch(url)
       const data = await res.json()
       setResults(data.results || [])
-    } catch (e) {
-      console.error(e)
-    }
+    } catch (e) { console.error(e) }
     setLoading(false)
   }
 
   const useMyLocation = () => {
     setLocationLoading(true)
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLocationLoading(false)
-        search(query, pos.coords.latitude, pos.coords.longitude)
-      },
-      () => {
-        setLocationLoading(false)
-        alert('Could not get your location. Try searching by name.')
-      }
+      (pos) => { setLocationLoading(false); search(query, pos.coords.latitude, pos.coords.longitude) },
+      () => { setLocationLoading(false); alert('Could not get your location. Try searching by name.') }
     )
   }
 
@@ -56,55 +48,64 @@ export default function SearchPage() {
   }
 
   return (
-    <main className="min-h-screen bg-black text-white px-6 py-12">
-      <div className="max-w-lg mx-auto">
-        <button onClick={() => router.back()} className="text-zinc-500 text-sm mb-8 hover:text-white transition">
-          ← Back
-        </button>
-        <h2 className="text-3xl font-bold tracking-widest mb-2" style={{ color: '#F5A623' }}>
-          FIND YOUR SHOW
-        </h2>
-        <p className="text-zinc-400 mb-6">Search by artist, venue, or city</p>
+    <main className="min-h-screen px-6 py-12" style={{ backgroundColor: '#F5F0E8' }}>
+      <div style={{ maxWidth: '480px', margin: '0 auto' }}>
+        <button onClick={() => router.back()} style={{ background: 'none', border: 'none', color: '#8BA5C0', fontSize: '14px', cursor: 'pointer', marginBottom: '32px', padding: 0 }}>← Back</button>
+
+        <h2 className="text-3xl font-bold tracking-widest" style={{ color: '#2C4A6E', marginBottom: '8px' }}>FIND YOUR SHOW</h2>
+        <p style={{ color: '#5C7A9E', marginBottom: '24px' }}>Search by artist, venue, or city</p>
 
         <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          type="text" value={query} onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && search(query)}
           placeholder="e.g. Radiohead, Madison Square Garden..."
-          className="w-full bg-zinc-900 text-white border border-zinc-700 rounded-xl px-5 py-4 text-lg focus:outline-none mb-4"
+          style={{
+            width: '100%', backgroundColor: '#EDE8DF', color: '#2C4A6E',
+            border: '1.5px solid #8BA5C0', borderRadius: '12px',
+            padding: '16px 20px', fontSize: '16px', outline: 'none',
+            marginBottom: '12px', boxSizing: 'border-box',
+          }}
         />
 
-        <div className="flex gap-3 mb-8">
-          <button
-            onClick={() => search(query)}
-            className="flex-1 py-4 rounded-full font-semibold text-lg border-2 transition"
-            style={{ borderColor: '#F5A623', color: '#F5A623' }}
-          >
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '32px' }}>
+          <button onClick={() => search(query)} style={{
+            flex: 1, padding: '16px', borderRadius: '999px', fontWeight: 600,
+            fontSize: '16px', backgroundColor: '#2C4A6E', color: '#F5F0E8',
+            border: 'none', cursor: 'pointer',
+          }}>
             {loading ? 'Searching...' : 'Search Shows'}
           </button>
-          <button
-            onClick={useMyLocation}
-            className="px-5 py-4 rounded-full border border-zinc-700 text-zinc-400 hover:text-white hover:border-white transition text-sm"
-          >
+          <button onClick={useMyLocation} style={{
+            padding: '16px 20px', borderRadius: '999px', fontSize: '14px',
+            border: '1.5px solid #8BA5C0', color: '#5C7A9E', background: 'transparent', cursor: 'pointer',
+          }}>
             {locationLoading ? '...' : '📍 Near Me'}
           </button>
         </div>
 
         {results.length > 0 && (
-          <div className="space-y-4">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {results.map((concert) => (
-              <div key={concert.id} className="bg-zinc-900 rounded-2xl p-5 border border-zinc-800 hover:border-amber-400 transition cursor-pointer">
-                <div className="flex justify-between items-start mb-1">
-                  <h3 className="font-bold text-lg leading-tight">{concert.artist}</h3>
-                  <span className="text-xs text-zinc-500 ml-2 mt-1 uppercase">{concert.source}</span>
+              <div key={concert.id} style={{
+                backgroundColor: '#EDE8DF', borderRadius: '16px', padding: '20px',
+                border: '1px solid #8BA5C0', cursor: 'pointer', transition: 'border-color 0.2s',
+              }}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = '#2C4A6E')}
+                onMouseLeave={e => (e.currentTarget.style.borderColor = '#8BA5C0')}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                  <h3 className="font-bold text-lg" style={{ color: '#2C4A6E' }}>{concert.artist}</h3>
+                  <span className="text-xs uppercase" style={{ color: '#8BA5C0', marginTop: '4px' }}>{concert.source}</span>
                 </div>
-                <p className="text-zinc-400 text-sm">{concert.venue} · {concert.city}</p>
-                <p className="text-sm mt-2" style={{ color: '#F5A623' }}>{formatDate(concert.date)}</p>
+                <p className="text-sm" style={{ color: '#5C7A9E' }}>{concert.venue} · {concert.city}</p>
+                <p className="text-sm font-medium" style={{ color: '#2C4A6E', marginTop: '8px' }}>{formatDate(concert.date)}</p>
                 <button
                   onClick={() => router.push(`/checkin?id=${concert.id}&artist=${encodeURIComponent(concert.artist)}&venue=${encodeURIComponent(concert.venue)}&city=${encodeURIComponent(concert.city)}&date=${concert.date}`)}
-                  className="mt-4 w-full py-2 rounded-full text-sm font-semibold border transition"
-                  style={{ borderColor: '#F5A623', color: '#F5A623' }}>
+                  style={{
+                    marginTop: '16px', width: '100%', padding: '10px', borderRadius: '999px',
+                    fontSize: '14px', fontWeight: 600, border: '1.5px solid #2C4A6E',
+                    color: '#2C4A6E', background: 'transparent', cursor: 'pointer',
+                  }}>
                   Check In Here 🎶
                 </button>
               </div>
@@ -113,7 +114,7 @@ export default function SearchPage() {
         )}
 
         {!loading && results.length === 0 && query && (
-          <p className="text-zinc-500 text-center mt-8">No shows found. Try another search or add your show manually.</p>
+          <p className="text-center mt-8" style={{ color: '#8BA5C0' }}>No shows found. Try another search or add your show manually.</p>
         )}
       </div>
     </main>
