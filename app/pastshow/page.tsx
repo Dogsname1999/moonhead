@@ -1,5 +1,5 @@
 'use client'
-import { useState, Suspense } from 'react'
+import { useState, Suspense, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
@@ -14,6 +14,28 @@ function PastShowContent() {
   const [saving, setSaving] = useState('')
   const [saved, setSaved] = useState<string[]>([])
   const [mbid, setMbid] = useState('')
+  const [myDates, setMyDates] = useState<string[]>([])
+
+  useEffect(() => {
+    const loadMyShows = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data } = await supabase.from('checkins').select('date,artist').eq('user_id', user.id)
+      if (data) setMyDates(data.map((c: any) => c.artist + '|' + c.date))
+    }
+    loadMyShows()
+  }, [])
+
+  const alreadySaved = (show: any) => {
+    if (!show.date || myDates.length === 0) return false
+    const parts = show.date.split('-')
+    if (parts.length !== 3) return false
+    const iso = parts[2] + '-' + parts[1] + '-' + parts[0]
+    const key1 = show.artist + '|' + iso
+    const key2 = show.artist + '|' + show.date
+    return myDates.some(d => d === key1 || d === key2 || d.includes(iso) || d.includes(show.date))
+  }
+
 
   const search = async () => {
     if (!artist.trim()) return
@@ -33,8 +55,12 @@ function PastShowContent() {
   const formatDate = (d: string) => {
     if (!d) return ''
     const parts = d.split('-')
-    const date = new Date(parts[2] + '-' + parts[1] + '-' + parts[0])
-    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })
+    if (parts.length !== 3) return d
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    const day = parseInt(parts[0])
+    const month = parseInt(parts[1]) - 1
+    const year = parts[2]
+    return months[month] + ' ' + day + ', ' + year
   }
 
   const iWasThere = async (show: any) => {
@@ -42,7 +68,10 @@ function PastShowContent() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/auth'); return }
-      const dateFormatted = show.date ? show.date.split('-').reverse().join('-') : ''
+      console.log('RAW DATE FROM SETLIST:', show.date)
+      const dp = show.date ? show.date.split('-') : []
+      const dateFormatted = dp.length === 3 ? dp[2] + '-' + dp[1] + '-' + dp[0] : show.date || ''
+      console.log('DATE FORMATTED:', dateFormatted)
       const { data: checkin } = await supabase.from('checkins').insert({
         user_id: user.id, artist: show.artist, venue: show.venue,
         city: show.city + (show.state ? ', ' + show.state : ''),
@@ -55,7 +84,8 @@ function PastShowContent() {
         }))
         await supabase.from('setlists').insert(songRows)
       }
-      setSaved([...saved, show.id])
+      setSaved((prev) => [...prev, show.id])
+      if (checkin) setTimeout(() => router.push('/show/' + checkin.id), 800)
     } catch (e) { console.error(e) }
     setSaving('')
   }
