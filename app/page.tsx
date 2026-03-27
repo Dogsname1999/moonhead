@@ -26,6 +26,13 @@ export default function Home() {
           Find Your Show
         </button>
         <button
+          onClick={() => router.push('/pastshow')}
+          className="font-semibold px-8 py-4 rounded-full text-lg transition border-2"
+          style={{borderColor: '#F5A623', color: '#F5A623', backgroundColor: 'transparent'}}
+        >
+          I Was There
+        </button>
+        <button
           onClick={() => router.push('/profile')}
           className="font-semibold px-8 py-4 rounded-full text-lg transition border border-zinc-700 text-zinc-400"
         >
