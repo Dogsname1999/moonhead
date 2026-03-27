@@ -52,31 +52,20 @@ export default function ShareCard({ artist, venue, city, date }: ShareCardProps)
       ctx.fill()
     }
 
-    // Moon glow
-    const moonX = W / 2
-    const moonY = 520
-    const moonR = 140
-    const glow = ctx.createRadialGradient(moonX, moonY, moonR * 0.8, moonX, moonY, moonR * 3)
-    glow.addColorStop(0, 'rgba(255,223,100,0.25)')
-    glow.addColorStop(1, 'rgba(255,223,100,0)')
-    ctx.fillStyle = glow
-    ctx.fillRect(0, 0, W, H)
-
-    // Moon circle
-    const moonGrad = ctx.createRadialGradient(moonX - 30, moonY - 30, 10, moonX, moonY, moonR)
-    moonGrad.addColorStop(0, '#ffe566')
-    moonGrad.addColorStop(0.7, '#ffcc33')
-    moonGrad.addColorStop(1, '#e6a800')
-    ctx.fillStyle = moonGrad
-    ctx.beginPath()
-    ctx.arc(moonX, moonY, moonR, 0, Math.PI * 2)
-    ctx.fill()
-
-    // Moon craters (subtle)
-    ctx.fillStyle = 'rgba(200,160,50,0.3)'
-    ctx.beginPath(); ctx.arc(moonX - 40, moonY - 20, 25, 0, Math.PI * 2); ctx.fill()
-    ctx.beginPath(); ctx.arc(moonX + 50, moonY + 30, 18, 0, Math.PI * 2); ctx.fill()
-    ctx.beginPath(); ctx.arc(moonX + 10, moonY - 50, 12, 0, Math.PI * 2); ctx.fill()
+    // Ticket stub logo
+    const logoSize = 280
+    const logoX = (W - logoSize) / 2
+    const logoY = 380
+    await new Promise<void>((resolve) => {
+      const img = new Image()
+      img.crossOrigin = 'anonymous'
+      img.onload = () => {
+        ctx.drawImage(img, logoX, logoY, logoSize, logoSize)
+        resolve()
+      }
+      img.onerror = () => resolve()
+      img.src = '/ticket.png'
+    })
 
     // "I WAS THERE" label
     ctx.textAlign = 'center'
