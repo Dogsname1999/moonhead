@@ -22,7 +22,7 @@ function PastShowContent() {
   const justSelectedRef = useRef(false)
   const searchedRef = useRef(false)
   const inputRef = useRef<HTMLInputElement>(null)
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>()
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   useEffect(() => {
     const loadMyShows = async () => {
