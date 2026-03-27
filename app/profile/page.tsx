@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
+import NavBar from "@/components/NavBar"
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -23,79 +24,58 @@ export default function ProfilePage() {
   }, [])
 
   const formatDate = (d: string) => new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    router.push("/")
-  }
+  const handleSignOut = async () => { await supabase.auth.signOut(); router.push("/") }
 
   return (
-    <main className="min-h-screen px-6 py-12" style={{ backgroundColor: '#F5F0E8' }}>
-      <div style={{ maxWidth: '480px', margin: '0 auto' }}>
-
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '40px' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#F5F0E8' }}>
+      <NavBar backLabel="Home" backPath="/" />
+      <div style={{ maxWidth: '560px', margin: '0 auto', padding: '36px 24px 64px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '36px' }}>
           <div>
-            <h2 className="text-3xl font-bold tracking-widest" style={{ color: '#2C4A6E' }}>MY SHOWS</h2>
-            <p className="text-sm" style={{ color: '#8BA5C0', marginTop: '4px' }}>{user?.email || 'Your concert history'}</p>
+            <h2 style={{ fontSize: '28px', fontWeight: 700, letterSpacing: '0.1em', color: '#2C4A6E', marginBottom: '4px', marginTop: 0 }}>MY SHOWS</h2>
+            <p style={{ color: '#8BA5C0', fontSize: '14px', margin: 0 }}>{user?.email || 'Your concert history'}</p>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-            <button onClick={() => router.push("/")} style={{ background: 'none', border: 'none', color: '#8BA5C0', fontSize: '14px', cursor: 'pointer' }}>Home</button>
-            {user && <button onClick={handleSignOut} style={{ background: 'none', border: 'none', color: '#8BA5C0', fontSize: '12px', cursor: 'pointer' }}>Sign out</button>}
-          </div>
+          {user && <button onClick={handleSignOut} style={{ background: 'none', border: 'none', color: '#8BA5C0', fontSize: '13px', cursor: 'pointer', padding: 0 }}>Sign out</button>}
         </div>
-
-        {/* Stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '40px' }}>
-          {[
-            { value: checkins.length, label: 'Shows' },
-            { value: 0, label: 'Songs Logged' },
-            { value: 0, label: 'Photos' },
-          ].map(({ value, label }) => (
-            <div key={label} style={{ backgroundColor: '#EDE8DF', borderRadius: '16px', padding: '16px', textAlign: 'center', border: '1px solid #8BA5C0' }}>
-              <p className="text-2xl font-bold" style={{ color: '#2C4A6E' }}>{value}</p>
-              <p className="text-xs" style={{ color: '#8BA5C0', marginTop: '4px' }}>{label}</p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '36px' }}>
+          {[{ value: checkins.length, label: 'Shows' }, { value: 0, label: 'Songs Logged' }, { value: 0, label: 'Photos' }].map(({ value, label }) => (
+            <div key={label} style={{ backgroundColor: '#EDE8DF', borderRadius: '16px', padding: '18px', textAlign: 'center', border: '1px solid #8BA5C0' }}>
+              <p style={{ fontSize: '26px', fontWeight: 700, color: '#2C4A6E', margin: 0 }}>{value}</p>
+              <p style={{ fontSize: '12px', color: '#8BA5C0', marginTop: '4px', marginBottom: 0 }}>{label}</p>
             </div>
           ))}
         </div>
-
-        {/* Shows list */}
         {loading ? (
-          <p className="text-center py-16" style={{ color: '#8BA5C0' }}>Loading your shows...</p>
+          <p style={{ color: '#8BA5C0', textAlign: 'center', padding: '64px 0' }}>Loading your shows...</p>
         ) : checkins.length === 0 ? (
-          <div className="text-center py-16">
-            <p style={{ color: '#5C7A9E', fontSize: '18px' }}>No shows yet</p>
-            <p className="text-sm" style={{ color: '#8BA5C0', marginTop: '8px' }}>Check in to your first show to get started</p>
+          <div style={{ textAlign: 'center', padding: '64px 0' }}>
+            <p style={{ color: '#5C7A9E', fontSize: '18px', marginBottom: '8px' }}>No shows yet</p>
+            <p style={{ color: '#8BA5C0', fontSize: '14px' }}>Check in to your first show to get started</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {checkins.map((show) => (
               <div key={show.id} onClick={() => router.push(`/show/${show.id}`)}
-                style={{ backgroundColor: '#EDE8DF', borderRadius: '16px', padding: '20px', border: '1px solid #8BA5C0', cursor: 'pointer', transition: 'border-color 0.2s' }}
+                style={{ backgroundColor: '#EDE8DF', borderRadius: '16px', padding: '20px', border: '1px solid #8BA5C0', cursor: 'pointer' }}
                 onMouseEnter={e => (e.currentTarget.style.borderColor = '#2C4A6E')}
                 onMouseLeave={e => (e.currentTarget.style.borderColor = '#8BA5C0')}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                   <div>
-                    <h3 className="font-bold text-lg" style={{ color: '#2C4A6E' }}>{show.artist}</h3>
-                    <p className="text-sm" style={{ color: '#5C7A9E' }}>{show.venue}{show.city ? ` · ${show.city}` : ""}</p>
-                    <p className="text-sm font-medium" style={{ color: '#2C4A6E', marginTop: '8px' }}>{formatDate(show.date)}</p>
+                    <h3 style={{ fontWeight: 700, fontSize: '18px', color: '#2C4A6E', margin: '0 0 4px' }}>{show.artist}</h3>
+                    <p style={{ fontSize: '14px', color: '#5C7A9E', margin: '0 0 8px' }}>{show.venue}{show.city ? ` · ${show.city}` : ""}</p>
+                    <p style={{ fontSize: '14px', fontWeight: 500, color: '#2C4A6E', margin: 0 }}>{formatDate(show.date)}</p>
                   </div>
-                  <span style={{ color: '#8BA5C0', fontSize: '16px', marginTop: '4px' }}>→</span>
+                  <span style={{ color: '#8BA5C0', fontSize: '18px' }}>→</span>
                 </div>
               </div>
             ))}
           </div>
         )}
-
-        <button onClick={() => router.push("/search")} style={{
-          width: '100%', marginTop: '40px', padding: '16px', borderRadius: '999px',
-          fontWeight: 600, fontSize: '16px', backgroundColor: '#2C4A6E', color: '#F5F0E8',
-          border: 'none', cursor: 'pointer',
-        }}>
+        <button onClick={() => router.push("/search")} style={{ width: '100%', marginTop: '36px', padding: '18px', borderRadius: '999px', fontWeight: 600, fontSize: '16px', backgroundColor: '#2C4A6E', color: '#F5F0E8', border: 'none', cursor: 'pointer' }}>
           + Check In to a Show
         </button>
       </div>
-    </main>
+    </div>
   )
 }

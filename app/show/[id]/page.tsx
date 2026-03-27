@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import NavBar from '@/components/NavBar'
 
 export default function ShowPage() {
   const router = useRouter()
@@ -41,82 +42,68 @@ export default function ShowPage() {
   }
 
   if (loading) return (
-    <main className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F5F0E8' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#F5F0E8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <p style={{ color: '#8BA5C0' }}>Loading show...</p>
-    </main>
+    </div>
   )
 
   if (!show) return (
-    <main className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F5F0E8' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#F5F0E8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <p style={{ color: '#8BA5C0' }}>Show not found</p>
-    </main>
+    </div>
   )
 
   return (
-    <main className="min-h-screen px-6 py-12" style={{ backgroundColor: '#F5F0E8' }}>
-      <div style={{ maxWidth: '480px', margin: '0 auto' }}>
-        <button onClick={() => router.push('/profile')} style={{ background: 'none', border: 'none', color: '#8BA5C0', fontSize: '14px', cursor: 'pointer', marginBottom: '32px', padding: 0 }}>← My Shows</button>
-
-        {/* Show header */}
-        <div style={{ marginBottom: '32px' }}>
-          <p className="text-xs uppercase tracking-widest" style={{ color: '#8BA5C0', marginBottom: '8px' }}>You were there</p>
-          <h2 className="text-4xl font-bold" style={{ color: '#2C4A6E', marginBottom: '8px' }}>{show.artist}</h2>
-          <p style={{ color: '#5C7A9E' }}>{show.venue}{show.city ? ' — ' + show.city : ''}</p>
-          <p className="text-sm" style={{ color: '#8BA5C0', marginTop: '4px' }}>{formatDate(show.date)}</p>
+    <div style={{ minHeight: '100vh', backgroundColor: '#F5F0E8' }}>
+      <NavBar backLabel="My Shows" backPath="/profile" />
+      <div style={{ maxWidth: '560px', margin: '0 auto', padding: '36px 24px 64px' }}>
+        <div style={{ marginBottom: '36px' }}>
+          <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8BA5C0', marginBottom: '10px' }}>You were there</p>
+          <h2 style={{ fontSize: '36px', fontWeight: 800, color: '#2C4A6E', marginBottom: '10px', lineHeight: 1.1, marginTop: 0 }}>{show.artist}</h2>
+          <p style={{ fontSize: '17px', color: '#5C7A9E', marginBottom: '6px', marginTop: 0 }}>{show.venue}{show.city ? ' — ' + show.city : ''}</p>
+          <p style={{ fontSize: '16px', color: '#8BA5C0', margin: 0 }}>{formatDate(show.date)}</p>
         </div>
-
-        {/* Note */}
         {show.note && (
-          <div style={{ backgroundColor: '#EDE8DF', borderRadius: '16px', padding: '20px', border: '1px solid #8BA5C0', marginBottom: '24px' }}>
-            <p className="text-xs uppercase tracking-widest" style={{ color: '#8BA5C0', marginBottom: '12px' }}>Your note</p>
-            <p style={{ color: '#2C4A6E', lineHeight: 1.6 }}>{show.note}</p>
+          <div style={{ backgroundColor: '#EDE8DF', borderRadius: '16px', padding: '24px', border: '1px solid #8BA5C0', marginBottom: '28px' }}>
+            <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8BA5C0', marginBottom: '12px', marginTop: 0 }}>Your note</p>
+            <p style={{ color: '#2C4A6E', lineHeight: 1.7, fontSize: '16px', margin: 0 }}>{show.note}</p>
           </div>
         )}
-
-        {/* Set list */}
         {songs.length > 0 && (
           <div style={{ marginBottom: '32px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <p className="text-xs uppercase tracking-widest" style={{ color: '#8BA5C0' }}>Set List</p>
-              <span className="text-xs" style={{ color: '#8BA5C0' }}>{songs.length} songs</span>
+              <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8BA5C0', margin: 0 }}>Set List</p>
+              <span style={{ fontSize: '14px', color: '#8BA5C0' }}>{songs.length} songs</span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {songs.map((song, index) => (
-                <div key={song.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', backgroundColor: '#EDE8DF', borderRadius: '14px', padding: '16px', border: '1px solid #8BA5C0' }}>
-                  <span style={{ color: '#8BA5C0', fontSize: '13px', fontFamily: 'monospace', marginTop: '2px', width: '24px', textAlign: 'right', flexShrink: 0 }}>{index + 1}</span>
+                <div key={song.id} style={{ display: 'flex', alignItems: 'center', gap: '20px', backgroundColor: '#EDE8DF', borderRadius: '14px', padding: '18px 20px', border: '1px solid #8BA5C0' }}>
+                  <span style={{ color: '#8BA5C0', fontSize: '13px', fontWeight: 600, width: '28px', textAlign: 'right', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{index + 1}</span>
                   <div style={{ flex: 1 }}>
-                    <p className="font-semibold" style={{ color: '#2C4A6E' }}>{song.song_title}</p>
-                    {song.note && <p className="text-sm" style={{ color: '#5C7A9E', marginTop: '4px' }}>{song.note}</p>}
+                    <p style={{ fontWeight: 600, color: '#2C4A6E', fontSize: '17px', margin: 0 }}>{song.song_title}</p>
+                    {song.note && <p style={{ color: '#5C7A9E', fontSize: '14px', marginTop: '4px', marginBottom: 0 }}>{song.note}</p>}
                   </div>
                 </div>
               ))}
             </div>
           </div>
         )}
-
-        {/* Archive link */}
         {archiveUrl && (
-          <a href={archiveUrl} target="_blank" rel="noopener noreferrer" style={{
-            display: 'block', width: '100%', padding: '16px', borderRadius: '999px',
-            textAlign: 'center', fontWeight: 600, border: '1.5px solid #8BA5C0',
-            color: '#5C7A9E', textDecoration: 'none', marginBottom: '24px', boxSizing: 'border-box',
-          }}>
+          <a href={archiveUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '18px', borderRadius: '999px', textAlign: 'center', fontWeight: 600, fontSize: '16px', border: '1.5px solid #8BA5C0', color: '#5C7A9E', textDecoration: 'none', marginBottom: '16px' }}>
             🎙 Listen on Archive.org
           </a>
         )}
-
-        {/* Actions */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <button onClick={() => router.push('/setlist?checkinId=' + show.id + '&artist=' + encodeURIComponent(show.artist))}
-            style={{ width: '100%', padding: '16px', borderRadius: '999px', fontWeight: 600, backgroundColor: '#2C4A6E', color: '#F5F0E8', border: 'none', cursor: 'pointer' }}>
+            style={{ width: '100%', padding: '18px', borderRadius: '999px', fontWeight: 600, fontSize: '16px', backgroundColor: '#2C4A6E', color: '#F5F0E8', border: 'none', cursor: 'pointer' }}>
             {songs.length > 0 ? 'Edit Set List' : 'Track Set List'}
           </button>
           <button onClick={() => router.push('/memories')}
-            style={{ width: '100%', padding: '16px', borderRadius: '999px', fontWeight: 600, border: '1.5px solid #8BA5C0', color: '#5C7A9E', background: 'transparent', cursor: 'pointer' }}>
+            style={{ width: '100%', padding: '18px', borderRadius: '999px', fontWeight: 600, fontSize: '16px', border: '1.5px solid #8BA5C0', color: '#5C7A9E', background: 'transparent', cursor: 'pointer' }}>
             Memories
           </button>
         </div>
       </div>
-    </main>
+    </div>
   )
 }

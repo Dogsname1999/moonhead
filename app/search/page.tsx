@@ -1,18 +1,11 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import NavBar from '@/components/NavBar'
 
 interface Concert {
-  id: string
-  source: string
-  name: string
-  artist: string
-  venue: string
-  city: string
-  date: string
-  time: string
-  image: string
-  url: string
+  id: string; source: string; name: string; artist: string
+  venue: string; city: string; date: string; time: string; image: string; url: string
 }
 
 export default function SearchPage() {
@@ -38,7 +31,7 @@ export default function SearchPage() {
     setLocationLoading(true)
     navigator.geolocation.getCurrentPosition(
       (pos) => { setLocationLoading(false); search(query, pos.coords.latitude, pos.coords.longitude) },
-      () => { setLocationLoading(false); alert('Could not get your location. Try searching by name.') }
+      () => { setLocationLoading(false); alert('Could not get your location.') }
     )
   }
 
@@ -48,75 +41,43 @@ export default function SearchPage() {
   }
 
   return (
-    <main className="min-h-screen px-6 py-12" style={{ backgroundColor: '#F5F0E8' }}>
-      <div style={{ maxWidth: '480px', margin: '0 auto' }}>
-        <button onClick={() => router.back()} style={{ background: 'none', border: 'none', color: '#8BA5C0', fontSize: '14px', cursor: 'pointer', marginBottom: '32px', padding: 0 }}>← Back</button>
-
-        <h2 className="text-3xl font-bold tracking-widest" style={{ color: '#2C4A6E', marginBottom: '8px' }}>FIND YOUR SHOW</h2>
-        <p style={{ color: '#5C7A9E', marginBottom: '24px' }}>Search by artist, venue, or city</p>
-
-        <input
-          type="text" value={query} onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && search(query)}
-          placeholder="e.g. Radiohead, Madison Square Garden..."
-          style={{
-            width: '100%', backgroundColor: '#EDE8DF', color: '#2C4A6E',
-            border: '1.5px solid #8BA5C0', borderRadius: '12px',
-            padding: '16px 20px', fontSize: '16px', outline: 'none',
-            marginBottom: '12px', boxSizing: 'border-box',
-          }}
-        />
-
+    <div style={{ minHeight: '100vh', backgroundColor: '#F5F0E8' }}>
+      <NavBar backLabel="Home" backPath="/" />
+      <div style={{ maxWidth: '560px', margin: '0 auto', padding: '36px 24px 64px' }}>
+        <h2 style={{ fontSize: '28px', fontWeight: 700, letterSpacing: '0.1em', color: '#2C4A6E', marginBottom: '8px', marginTop: 0 }}>FIND YOUR SHOW</h2>
+        <p style={{ color: '#5C7A9E', fontSize: '15px', marginBottom: '28px', marginTop: 0 }}>Search by artist, venue, or city</p>
+        <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && search(query)} placeholder="e.g. Radiohead, Madison Square Garden..."
+          style={{ display: 'block', width: '100%', boxSizing: 'border-box', backgroundColor: '#EDE8DF', color: '#2C4A6E', border: '1.5px solid #8BA5C0', borderRadius: '12px', padding: '16px 20px', fontSize: '16px', outline: 'none', marginBottom: '12px' }} />
         <div style={{ display: 'flex', gap: '12px', marginBottom: '32px' }}>
-          <button onClick={() => search(query)} style={{
-            flex: 1, padding: '16px', borderRadius: '999px', fontWeight: 600,
-            fontSize: '16px', backgroundColor: '#2C4A6E', color: '#F5F0E8',
-            border: 'none', cursor: 'pointer',
-          }}>
+          <button onClick={() => search(query)} style={{ flex: 1, padding: '16px', borderRadius: '999px', fontWeight: 600, fontSize: '16px', backgroundColor: '#2C4A6E', color: '#F5F0E8', border: 'none', cursor: 'pointer' }}>
             {loading ? 'Searching...' : 'Search Shows'}
           </button>
-          <button onClick={useMyLocation} style={{
-            padding: '16px 20px', borderRadius: '999px', fontSize: '14px',
-            border: '1.5px solid #8BA5C0', color: '#5C7A9E', background: 'transparent', cursor: 'pointer',
-          }}>
+          <button onClick={useMyLocation} style={{ padding: '16px 20px', borderRadius: '999px', fontSize: '14px', border: '1.5px solid #8BA5C0', color: '#5C7A9E', background: 'transparent', cursor: 'pointer' }}>
             {locationLoading ? '...' : '📍 Near Me'}
           </button>
         </div>
-
         {results.length > 0 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {results.map((concert) => (
-              <div key={concert.id} style={{
-                backgroundColor: '#EDE8DF', borderRadius: '16px', padding: '20px',
-                border: '1px solid #8BA5C0', cursor: 'pointer', transition: 'border-color 0.2s',
-              }}
-                onMouseEnter={e => (e.currentTarget.style.borderColor = '#2C4A6E')}
-                onMouseLeave={e => (e.currentTarget.style.borderColor = '#8BA5C0')}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
-                  <h3 className="font-bold text-lg" style={{ color: '#2C4A6E' }}>{concert.artist}</h3>
-                  <span className="text-xs uppercase" style={{ color: '#8BA5C0', marginTop: '4px' }}>{concert.source}</span>
+              <div key={concert.id} style={{ backgroundColor: '#EDE8DF', borderRadius: '16px', padding: '20px', border: '1px solid #8BA5C0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <h3 style={{ fontWeight: 700, fontSize: '18px', color: '#2C4A6E', margin: 0 }}>{concert.artist}</h3>
+                  <span style={{ fontSize: '11px', color: '#8BA5C0', textTransform: 'uppercase' }}>{concert.source}</span>
                 </div>
-                <p className="text-sm" style={{ color: '#5C7A9E' }}>{concert.venue} · {concert.city}</p>
-                <p className="text-sm font-medium" style={{ color: '#2C4A6E', marginTop: '8px' }}>{formatDate(concert.date)}</p>
-                <button
-                  onClick={() => router.push(`/checkin?id=${concert.id}&artist=${encodeURIComponent(concert.artist)}&venue=${encodeURIComponent(concert.venue)}&city=${encodeURIComponent(concert.city)}&date=${concert.date}`)}
-                  style={{
-                    marginTop: '16px', width: '100%', padding: '10px', borderRadius: '999px',
-                    fontSize: '14px', fontWeight: 600, border: '1.5px solid #2C4A6E',
-                    color: '#2C4A6E', background: 'transparent', cursor: 'pointer',
-                  }}>
+                <p style={{ fontSize: '14px', color: '#5C7A9E', margin: '4px 0' }}>{concert.venue} · {concert.city}</p>
+                <p style={{ fontSize: '14px', fontWeight: 500, color: '#2C4A6E', margin: '8px 0 16px' }}>{formatDate(concert.date)}</p>
+                <button onClick={() => router.push(`/checkin?id=${concert.id}&artist=${encodeURIComponent(concert.artist)}&venue=${encodeURIComponent(concert.venue)}&city=${encodeURIComponent(concert.city)}&date=${concert.date}`)}
+                  style={{ width: '100%', padding: '12px', borderRadius: '999px', fontSize: '14px', fontWeight: 600, border: '1.5px solid #2C4A6E', color: '#2C4A6E', background: 'transparent', cursor: 'pointer' }}>
                   Check In Here 🎶
                 </button>
               </div>
             ))}
           </div>
         )}
-
         {!loading && results.length === 0 && query && (
-          <p className="text-center mt-8" style={{ color: '#8BA5C0' }}>No shows found. Try another search or add your show manually.</p>
+          <p style={{ color: '#8BA5C0', textAlign: 'center', marginTop: '32px' }}>No shows found. Try another search.</p>
         )}
       </div>
-    </main>
+    </div>
   )
 }

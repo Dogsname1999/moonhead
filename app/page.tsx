@@ -4,44 +4,46 @@ import { useRouter } from 'next/navigation'
 export default function Home() {
   const router = useRouter()
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-8" style={{ backgroundColor: '#F5F0E8' }}>
-      <div className="flex flex-col items-center" style={{ width: '100%', maxWidth: '320px' }}>
+    <main style={{ minHeight: '100vh', backgroundColor: '#F5F0E8', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 32px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: '320px' }}>
 
-        {/* Logo */}
         <img
           src="/ticket.png"
           alt="Moonhead"
-          width={180}
-          height={180}
-          style={{ width: '180px', height: '180px', objectFit: 'contain', marginBottom: '32px' }}
+          width={200}
+          height={200}
+          style={{ width: '200px', height: '200px', objectFit: 'contain', marginBottom: '32px' }}
         />
 
-        {/* Tagline */}
-        <p className="text-base text-center" style={{ color: '#5C7A9E', marginBottom: '40px', letterSpacing: '0.03em' }}>
+        <p style={{ color: '#5C7A9E', fontSize: '16px', letterSpacing: '0.03em', marginBottom: '40px', textAlign: 'center' }}>
           The ticket stub. Evolved.
         </p>
 
-        {/* Primary */}
-        <button onClick={() => router.push('/search')} className="w-full font-semibold rounded-full text-lg transition"
-          style={{ color: '#F5F0E8', backgroundColor: '#2C4A6E', padding: '16px 32px', marginBottom: '12px' }}>
+        <button
+          onClick={() => router.push('/search')}
+          style={{ width: '100%', padding: '16px 32px', borderRadius: '999px', fontSize: '18px', fontWeight: 700, backgroundColor: '#2C4A6E', color: '#F5F0E8', border: 'none', cursor: 'pointer', marginBottom: '14px', letterSpacing: '0.01em' }}
+        >
           Find Your Show
         </button>
 
-        {/* Secondary */}
-        <button onClick={() => router.push('/pastshow')} className="w-full font-semibold rounded-full text-lg transition"
-          style={{ color: '#2C4A6E', backgroundColor: 'transparent', border: '2px solid #2C4A6E', padding: '16px 32px', marginBottom: '12px' }}>
+        <button
+          onClick={() => router.push('/pastshow')}
+          style={{ width: '100%', padding: '16px 32px', borderRadius: '999px', fontSize: '18px', fontWeight: 700, backgroundColor: 'transparent', color: '#2C4A6E', border: '2px solid #2C4A6E', cursor: 'pointer', marginBottom: '14px', letterSpacing: '0.01em' }}
+        >
           I Was There
         </button>
 
-        {/* Tertiary */}
-        <button onClick={() => router.push('/profile')} className="w-full font-semibold rounded-full text-lg transition"
-          style={{ color: '#5C7A9E', backgroundColor: 'transparent', border: '1.5px solid #5C7A9E', padding: '16px 32px', marginBottom: '32px' }}>
+        <button
+          onClick={() => router.push('/profile')}
+          style={{ width: '100%', padding: '16px 32px', borderRadius: '999px', fontSize: '18px', fontWeight: 700, backgroundColor: 'transparent', color: '#5C7A9E', border: '2px solid #5C7A9E', cursor: 'pointer', marginBottom: '28px', letterSpacing: '0.01em' }}
+        >
           My Shows
         </button>
 
-        {/* Sign in */}
-        <button onClick={() => router.push('/auth')} className="text-sm transition border-none bg-transparent"
-          style={{ color: '#8BA5C0', padding: '8px 0' }}>
+        <button
+          onClick={() => router.push('/auth')}
+          style={{ background: 'none', border: 'none', padding: '8px 0', fontSize: '15px', color: '#8BA5C0', cursor: 'pointer' }}
+        >
           Sign in / Create account
         </button>
 

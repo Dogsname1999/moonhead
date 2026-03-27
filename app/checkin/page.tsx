@@ -2,6 +2,7 @@
 import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import NavBar from '@/components/NavBar'
 
 function CheckInContent() {
   const router = useRouter()
@@ -27,9 +28,7 @@ function CheckInContent() {
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        const { data, error } = await supabase.from('checkins').insert({
-          user_id: user.id, artist, venue, city, date, note, concert_id: concertId,
-        }).select().single()
+        const { data } = await supabase.from('checkins').insert({ user_id: user.id, artist, venue, city, date, note, concert_id: concertId }).select().single()
         if (data) setCheckinId(data.id)
       }
     } catch (e) { console.error(e) }
@@ -37,73 +36,40 @@ function CheckInContent() {
     setLoading(false)
   }
 
-  const secondaryBtn = {
-    width: '100%', padding: '16px', borderRadius: '999px', fontWeight: 600,
-    fontSize: '16px', border: '1.5px solid #8BA5C0', color: '#5C7A9E',
-    background: 'transparent', cursor: 'pointer', marginBottom: '12px', transition: 'all 0.2s',
-  }
+  const secondaryBtn: React.CSSProperties = { width: '100%', padding: '16px', borderRadius: '999px', fontWeight: 600, fontSize: '16px', border: '1.5px solid #8BA5C0', color: '#5C7A9E', background: 'transparent', cursor: 'pointer', marginBottom: '12px' }
 
   return (
-    <main className="min-h-screen px-6 py-12" style={{ backgroundColor: '#F5F0E8' }}>
-      <div style={{ maxWidth: '480px', margin: '0 auto' }}>
-        <button onClick={() => router.back()} style={{
-          background: 'none', border: 'none', color: '#8BA5C0', fontSize: '14px',
-          cursor: 'pointer', marginBottom: '32px', padding: 0,
-        }}>← Back</button>
-
+    <div style={{ minHeight: '100vh', backgroundColor: '#F5F0E8' }}>
+      <NavBar backLabel="Search" backPath="/search" />
+      <div style={{ maxWidth: '560px', margin: '0 auto', padding: '36px 24px 64px', textAlign: 'center' }}>
         {!checked ? (
-          <div className="text-center">
-            <p className="text-xs uppercase tracking-widest" style={{ color: '#8BA5C0', marginBottom: '8px' }}>
-              You're about to check in to
-            </p>
-            <h2 className="text-4xl font-bold" style={{ color: '#2C4A6E', marginBottom: '8px' }}>{artist}</h2>
-            <p style={{ color: '#5C7A9E', marginBottom: '4px' }}>{venue}{city ? ` · ${city}` : ''}</p>
-            <p className="text-sm" style={{ color: '#8BA5C0', marginBottom: '40px' }}>{formatDate(date)}</p>
-
-            <textarea
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="First thoughts? Opening act? How are you feeling..."
-              style={{
-                width: '100%', backgroundColor: '#EDE8DF', color: '#2C4A6E',
-                border: '1.5px solid #8BA5C0', borderRadius: '16px',
-                padding: '20px', fontSize: '16px', outline: 'none',
-                resize: 'none', height: '128px', marginBottom: '24px',
-                boxSizing: 'border-box',
-              }}
-            />
-
-            <button onClick={handleCheckIn} disabled={loading} style={{
-              width: '100%', padding: '20px', borderRadius: '999px', fontWeight: 700,
-              fontSize: '20px', backgroundColor: '#2C4A6E', color: '#F5F0E8',
-              border: 'none', cursor: 'pointer', transition: 'background-color 0.2s',
-            }}>
+          <>
+            <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8BA5C0', marginBottom: '10px' }}>You're about to check in to</p>
+            <h2 style={{ fontSize: '36px', fontWeight: 800, color: '#2C4A6E', marginBottom: '10px', lineHeight: 1.1 }}>{artist}</h2>
+            <p style={{ color: '#5C7A9E', fontSize: '17px', marginBottom: '4px' }}>{venue}{city ? ` · ${city}` : ''}</p>
+            <p style={{ color: '#8BA5C0', fontSize: '15px', marginBottom: '40px' }}>{formatDate(date)}</p>
+            <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="First thoughts? Opening act? How are you feeling..."
+              style={{ display: 'block', width: '100%', boxSizing: 'border-box', backgroundColor: '#EDE8DF', color: '#2C4A6E', border: '1.5px solid #8BA5C0', borderRadius: '16px', padding: '20px', fontSize: '16px', outline: 'none', resize: 'none', height: '128px', marginBottom: '24px' }} />
+            <button onClick={handleCheckIn} disabled={loading} style={{ width: '100%', padding: '20px', borderRadius: '999px', fontWeight: 700, fontSize: '20px', backgroundColor: '#2C4A6E', color: '#F5F0E8', border: 'none', cursor: 'pointer' }}>
               {loading ? 'Checking in...' : "I'M HERE 🎶"}
             </button>
-          </div>
+          </>
         ) : (
-          <div className="text-center">
+          <>
             <div style={{ fontSize: '72px', marginBottom: '24px' }}>🌕</div>
-            <h2 className="text-3xl font-bold" style={{ color: '#2C4A6E', marginBottom: '8px' }}>YOU'RE CHECKED IN</h2>
-            <p style={{ color: '#5C7A9E', marginBottom: '4px' }}>{artist}</p>
-            <p className="text-sm" style={{ color: '#8BA5C0', marginBottom: '48px' }}>{venue}{city ? ` · ${city}` : ''}</p>
-
-            <div>
-              <button onClick={() => router.push(`/setlist?checkinId=${checkinId}&artist=${encodeURIComponent(artist)}`)}
-                style={{
-                  width: '100%', padding: '16px', borderRadius: '999px', fontWeight: 600,
-                  fontSize: '16px', backgroundColor: '#2C4A6E', color: '#F5F0E8',
-                  border: 'none', cursor: 'pointer', marginBottom: '12px',
-                }}>
-                Track the Set List 🎵
-              </button>
-              <button onClick={() => router.push('/whohere')} style={secondaryBtn}>See Who's Here 👥</button>
-              <button onClick={() => router.push('/profile')} style={secondaryBtn}>View My Shows 👤</button>
-            </div>
-          </div>
+            <h2 style={{ fontSize: '32px', fontWeight: 800, color: '#2C4A6E', marginBottom: '8px' }}>YOU'RE CHECKED IN</h2>
+            <p style={{ color: '#5C7A9E', fontSize: '17px', marginBottom: '4px' }}>{artist}</p>
+            <p style={{ color: '#8BA5C0', fontSize: '15px', marginBottom: '48px' }}>{venue}{city ? ` · ${city}` : ''}</p>
+            <button onClick={() => router.push(`/setlist?checkinId=${checkinId}&artist=${encodeURIComponent(artist)}`)}
+              style={{ width: '100%', padding: '16px', borderRadius: '999px', fontWeight: 600, fontSize: '16px', backgroundColor: '#2C4A6E', color: '#F5F0E8', border: 'none', cursor: 'pointer', marginBottom: '12px' }}>
+              Track the Set List 🎵
+            </button>
+            <button onClick={() => router.push('/whohere')} style={secondaryBtn}>See Who's Here 👥</button>
+            <button onClick={() => router.push('/profile')} style={secondaryBtn}>View My Shows 👤</button>
+          </>
         )}
       </div>
-    </main>
+    </div>
   )
 }
 
