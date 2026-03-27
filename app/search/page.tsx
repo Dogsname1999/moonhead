@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import NavBar from '@/components/NavBar'
 
@@ -15,7 +15,54 @@ export default function SearchPage() {
   const [locationLoading, setLocationLoading] = useState(false)
   const router = useRouter()
 
+  // Artist autocomplete state
+  const [suggestions, setSuggestions] = useState<{ name: string; disambiguation?: string }[]>([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [activeSuggestion, setActiveSuggestion] = useState(-1)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const suggestionsRef = useRef<HTMLDivElement>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Fetch artist suggestions as user types
+  useEffect(() => {
+    if (query.trim().length < 2) {
+      setSuggestions([])
+      setShowSuggestions(false)
+      return
+    }
+
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/artists?q=${encodeURIComponent(query.trim())}`)
+        const data = await res.json()
+        setSuggestions(data.artists || [])
+        setShowSuggestions((data.artists || []).length > 0)
+        setActiveSuggestion(-1)
+      } catch (e) {
+        console.error('Artist autocomplete error:', e)
+      }
+    }, 250)
+
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+  }, [query])
+
+  // Close suggestions on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (
+        suggestionsRef.current && !suggestionsRef.current.contains(e.target as Node) &&
+        inputRef.current && !inputRef.current.contains(e.target as Node)
+      ) {
+        setShowSuggestions(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
   const search = async (q: string, lat?: number, lng?: number) => {
+    setShowSuggestions(false)
     setLoading(true)
     try {
       let url = `/api/concerts?query=${encodeURIComponent(q)}`
@@ -25,6 +72,50 @@ export default function SearchPage() {
       setResults(data.results || [])
     } catch (e) { console.error(e) }
     setLoading(false)
+  }
+
+  const selectArtist = (name: string) => {
+    setQuery(name)
+    setShowSuggestions(false)
+    // Auto-search immediately
+    setTimeout(() => search(name), 50)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (showSuggestions && suggestions.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setActiveSuggestion(prev => (prev < suggestions.length - 1 ? prev + 1 : 0))
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setActiveSuggestion(prev => (prev > 0 ? prev - 1 : suggestions.length - 1))
+      } else if (e.key === 'Enter') {
+        e.preventDefault()
+        if (activeSuggestion >= 0) {
+          selectArtist(suggestions[activeSuggestion].name)
+        } else {
+          search(query)
+        }
+      } else if (e.key === 'Escape') {
+        setShowSuggestions(false)
+      }
+    } else if (e.key === 'Enter') {
+      search(query)
+    }
+  }
+
+  // Highlight matching text
+  const highlightMatch = (text: string, q: string) => {
+    if (!q.trim()) return text
+    const idx = text.toLowerCase().indexOf(q.toLowerCase())
+    if (idx === -1) return text
+    return (
+      <>
+        {text.slice(0, idx)}
+        <span style={{ fontWeight: 700, color: '#2C4A6E' }}>{text.slice(idx, idx + q.length)}</span>
+        {text.slice(idx + q.length)}
+      </>
+    )
   }
 
   const useMyLocation = () => {
@@ -46,8 +137,66 @@ export default function SearchPage() {
       <div style={{ maxWidth: '560px', margin: '0 auto', padding: '36px 24px 64px' }}>
         <h2 style={{ fontSize: '28px', fontWeight: 700, letterSpacing: '0.1em', color: '#2C4A6E', marginBottom: '8px', marginTop: 0 }}>FIND YOUR SHOW</h2>
         <p style={{ color: '#5C7A9E', fontSize: '15px', marginBottom: '28px', marginTop: 0 }}>Search by artist, venue, or city</p>
-        <input type="text" value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && search(query)} placeholder="e.g. Radiohead, Madison Square Garden..."
-          style={{ display: 'block', width: '100%', boxSizing: 'border-box', backgroundColor: '#EDE8DF', color: '#2C4A6E', border: '1.5px solid #8BA5C0', borderRadius: '12px', padding: '16px 20px', fontSize: '16px', outline: 'none', marginBottom: '12px' }} />
+
+        {/* Search input with artist autocomplete */}
+        <div style={{ position: 'relative', marginBottom: '12px' }}>
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true) }}
+            onKeyDown={handleKeyDown}
+            placeholder="e.g. Radiohead, Madison Square Garden..."
+            style={{ display: 'block', width: '100%', boxSizing: 'border-box', backgroundColor: '#EDE8DF', color: '#2C4A6E', border: '1.5px solid #8BA5C0', borderRadius: '12px', padding: '16px 20px', fontSize: '16px', outline: 'none' }}
+          />
+
+          {showSuggestions && (
+            <div
+              ref={suggestionsRef}
+              style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                backgroundColor: '#F5F0E8',
+                border: '1.5px solid #8BA5C0',
+                borderRadius: '12px',
+                boxShadow: '0 8px 24px rgba(44,74,110,0.15)',
+                zIndex: 20,
+                overflow: 'hidden',
+                marginTop: '4px',
+              }}
+            >
+              {suggestions.map((artist, i) => (
+                <button
+                  key={artist.name}
+                  onClick={() => selectArtist(artist.name)}
+                  onMouseEnter={() => setActiveSuggestion(i)}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '14px 20px',
+                    fontSize: '16px',
+                    color: activeSuggestion === i ? '#2C4A6E' : '#5C7A9E',
+                    backgroundColor: activeSuggestion === i ? '#EDE8DF' : 'transparent',
+                    border: 'none',
+                    borderBottom: i < suggestions.length - 1 ? '1px solid #EDE8DF' : 'none',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.1s',
+                  }}
+                >
+                  {highlightMatch(artist.name, query)}
+                  {artist.disambiguation && (
+                    <span style={{ fontSize: '12px', color: '#8BA5C0', marginLeft: '8px' }}>{artist.disambiguation}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         <div style={{ display: 'flex', gap: '12px', marginBottom: '32px' }}>
           <button onClick={() => search(query)} style={{ flex: 1, padding: '16px', borderRadius: '999px', fontWeight: 600, fontSize: '16px', backgroundColor: '#2C4A6E', color: '#F5F0E8', border: 'none', cursor: 'pointer' }}>
             {loading ? 'Searching...' : 'Search Shows'}
