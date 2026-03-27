@@ -66,7 +66,7 @@ export default function MemoriesPage() {
             />
             <input type="text" value={caption} onChange={(e) => setCaption(e.target.value)}
               placeholder="Add a title (optional)"
-              style={{ width: '100%', background: 'transparent', color: '#5C7A9E', fontSize: '14px', outline: 'none', borderTop: '1px solid #8BA5C0', paddingTop: '12px', marginBottom: '16px', border: 'none', borderTop: '1px solid #8BA5C0' }}
+              style={{ width: '100%', background: 'transparent', color: '#5C7A9E', fontSize: '14px', outline: 'none', borderTop: '1px solid #8BA5C0', paddingTop: '12px', marginBottom: '16px' }}
             />
             <button onClick={addNote} style={{ width: '100%', padding: '12px', borderRadius: '999px', fontWeight: 600, backgroundColor: '#2C4A6E', color: '#F5F0E8', border: 'none', cursor: 'pointer' }}>
               Save Note
