@@ -264,6 +264,16 @@ function PastShowContent() {
                           {saving === show.id ? 'Saving…' : 'I Was There 🌕'}
                         </button>
                       )}
+                      <button onClick={(e) => {
+                        e.stopPropagation()
+                        const url = `${window.location.origin}/concert/${show.id}`
+                        navigator.clipboard?.writeText(url)
+                        const el = e.currentTarget
+                        el.textContent = 'Link Copied!'
+                        setTimeout(() => { el.textContent = '🔗 Share This Show' }, 2000)
+                      }} style={{ width: '100%', padding: '10px', borderRadius: '999px', fontWeight: 600, fontSize: '13px', border: '1.5px solid #8BA5C0', color: '#5C7A9E', background: 'transparent', cursor: 'pointer', marginTop: '8px' }}>
+                        🔗 Share This Show
+                      </button>
                     </div>
                   )}
                 </div>
