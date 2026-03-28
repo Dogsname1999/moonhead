@@ -23,6 +23,7 @@ function PastShowContent() {
   const [suggestions, setSuggestions] = useState<any[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [highlightIndex, setHighlightIndex] = useState(-1)
+  const [expandedShow, setExpandedShow] = useState<string | null>(null)
   const justSelectedRef = useRef(false)
   const searchedRef = useRef(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -179,59 +180,96 @@ function PastShowContent() {
         {results.length > 0 && (
           <div>
             <p style={{ color: '#8BA5C0', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '16px' }}>Showing {results.length}{totalResults > 0 ? ` of ${totalResults}` : ''} shows</p>
-            {results.map((show) => (
-              <div key={show.id} style={{ backgroundColor: '#EDE8DF', borderRadius: '16px', padding: '20px', border: '1px solid #8BA5C0', marginBottom: '12px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <div>
-                    <p style={{ fontWeight: 700, fontSize: '18px', color: '#2C4A6E', margin: 0 }}>{show.artist}</p>
-                    <p style={{ color: '#5C7A9E', fontSize: '14px', margin: '2px 0 0' }}>{show.venue}</p>
-                    <p style={{ color: '#8BA5C0', fontSize: '14px', margin: '2px 0 0' }}>{show.city}{show.state ? ', ' + show.state : ''}</p>
-                    <p style={{ color: '#2C4A6E', fontSize: '14px', fontWeight: 500, margin: '6px 0 0' }}>{formatDate(show.date)}</p>
-                    {show.tour && <p style={{ color: '#8BA5C0', fontSize: '12px', margin: '2px 0 0' }}>{show.tour}</p>}
-                  </div>
-                  <span style={{ color: '#8BA5C0', fontSize: '12px' }}>{show.totalSongs} songs</span>
-                </div>
-                {show.songs?.length > 0 && (() => {
-                  const sets: { name: string; songs: any[] }[] = []
-                  show.songs.forEach((song: any) => {
-                    const sn = song.encore ? (song.encore > 1 ? `Encore ${song.encore}` : 'Encore') : (song.setName || 'Set')
-                    const existing = sets.find(s => s.name === sn)
-                    if (existing) existing.songs.push(song)
-                    else sets.push({ name: sn, songs: [song] })
-                  })
-                  return (
-                    <div style={{ marginBottom: '16px' }}>
-                      <p style={{ color: '#8BA5C0', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px' }}>Set List Preview</p>
-                      {sets.map((set, si) => (
-                        <div key={si} style={{ marginBottom: si < sets.length - 1 ? '10px' : 0 }}>
-                          <p style={{ color: '#2C4A6E', fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 4px' }}>{set.name}</p>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                            {set.songs.slice(0, 4).map((song: any, i: number) => (
-                              <span key={i} style={{ fontSize: '12px', backgroundColor: '#F5F0E8', color: '#5C7A9E', padding: '4px 10px', borderRadius: '999px' }}>{song.name}</span>
-                            ))}
-                            {set.songs.length > 4 && <span style={{ fontSize: '12px', color: '#8BA5C0', padding: '4px 8px' }}>+{set.songs.length - 4} more</span>}
-                          </div>
-                        </div>
-                      ))}
+            {results.map((show) => {
+              const isExpanded = expandedShow === show.id
+              const sets: { name: string; songs: any[] }[] = []
+              if (show.songs?.length > 0) {
+                show.songs.forEach((song: any) => {
+                  const sn = song.encore ? (song.encore > 1 ? `Encore ${song.encore}` : 'Encore') : (song.setName || 'Set')
+                  const existing = sets.find(s => s.name === sn)
+                  if (existing) existing.songs.push(song)
+                  else sets.push({ name: sn, songs: [song] })
+                })
+              }
+              return (
+                <div key={show.id} style={{ backgroundColor: '#EDE8DF', borderRadius: '16px', border: isExpanded ? '1.5px solid #2C4A6E' : '1px solid #8BA5C0', marginBottom: '12px', overflow: 'hidden' }}>
+                  {/* Clickable header */}
+                  <div onClick={() => setExpandedShow(isExpanded ? null : show.id)}
+                    style={{ padding: '20px', cursor: 'pointer' }}
+                    onMouseEnter={e => { if (!isExpanded) e.currentTarget.style.backgroundColor = '#e8e3da' }}
+                    onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <div>
+                        <p style={{ fontWeight: 700, fontSize: '18px', color: '#2C4A6E', margin: 0 }}>{show.artist}</p>
+                        <p style={{ color: '#5C7A9E', fontSize: '14px', margin: '2px 0 0' }}>{show.venue}</p>
+                        <p style={{ color: '#8BA5C0', fontSize: '14px', margin: '2px 0 0' }}>{show.city}{show.state ? ', ' + show.state : ''}</p>
+                        <p style={{ color: '#2C4A6E', fontSize: '14px', fontWeight: 500, margin: '6px 0 0' }}>{formatDate(show.date)}</p>
+                        {show.tour && <p style={{ color: '#8BA5C0', fontSize: '12px', margin: '2px 0 0' }}>{show.tour}</p>}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+                        <span style={{ color: '#8BA5C0', fontSize: '12px' }}>{show.totalSongs} songs</span>
+                        <span style={{ color: '#8BA5C0', fontSize: '18px', transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }}>→</span>
+                      </div>
                     </div>
-                  )
-                })()}
-                {show.archiveUrl && (
-                  <a href={show.archiveUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '999px', textAlign: 'center', fontSize: '14px', fontWeight: 600, border: '1.5px solid #8BA5C0', color: '#5C7A9E', textDecoration: 'none', marginBottom: '10px' }}>
-                    🎙 Listen on Archive.org
-                  </a>
-                )}
-                {alreadySaved(show) ? (
-                  <div style={{ padding: '12px', borderRadius: '999px', textAlign: 'center', fontSize: '14px', fontWeight: 600, backgroundColor: '#F5F0E8', color: '#8BA5C0', border: '1px solid #8BA5C0' }}>
-                    ✓ Already in My Shows
+                    {/* Collapsed preview: just set names + song count */}
+                    {!isExpanded && sets.length > 0 && (
+                      <p style={{ color: '#8BA5C0', fontSize: '12px', margin: '8px 0 0' }}>
+                        {sets.map(s => `${s.name} (${s.songs.length})`).join(' · ')}
+                      </p>
+                    )}
                   </div>
-                ) : (
-                  <button onClick={() => iWasThere(show)} disabled={saving === show.id} style={{ width: '100%', padding: '12px', borderRadius: '999px', fontWeight: 600, fontSize: '14px', backgroundColor: saving === show.id ? '#5C7A9E' : '#2C4A6E', color: '#F5F0E8', border: 'none', cursor: 'pointer' }}>
-                    {saving === show.id ? 'Saving…' : 'I Was There 🌕'}
-                  </button>
-                )}
-              </div>
-            ))}
+
+                  {/* Expanded full setlist */}
+                  {isExpanded && (
+                    <div style={{ padding: '0 20px 20px' }}>
+                      {sets.length > 0 && (() => {
+                        let runningIndex = 0
+                        return (
+                          <div style={{ marginBottom: '16px' }}>
+                            {sets.map((set, si) => {
+                              return (
+                                <div key={si} style={{ marginBottom: si < sets.length - 1 ? '20px' : 0 }}>
+                                  <p style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#2C4A6E', margin: '0 0 8px', paddingBottom: '6px', borderBottom: '2px solid #8BA5C0' }}>{set.name}</p>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                    {set.songs.map((song: any) => {
+                                      runningIndex++
+                                      return (
+                                        <div key={runningIndex} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', backgroundColor: '#F5F0E8', borderRadius: '10px' }}>
+                                          <span style={{ color: '#8BA5C0', fontSize: '12px', fontWeight: 600, width: '24px', textAlign: 'right', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{runningIndex}</span>
+                                          <div style={{ flex: 1 }}>
+                                            <p style={{ fontWeight: 600, color: '#2C4A6E', fontSize: '15px', margin: 0 }}>{song.name}</p>
+                                            {song.info && <p style={{ color: '#5C7A9E', fontSize: '12px', marginTop: '2px', marginBottom: 0 }}>{song.info}</p>}
+                                            {song.cover && <p style={{ color: '#8BA5C0', fontSize: '11px', marginTop: '2px', marginBottom: 0 }}>Cover: {song.cover}</p>}
+                                          </div>
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        )
+                      })()}
+                      {show.archiveUrl && (
+                        <a href={show.archiveUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '999px', textAlign: 'center', fontSize: '14px', fontWeight: 600, border: '1.5px solid #8BA5C0', color: '#5C7A9E', textDecoration: 'none', marginBottom: '10px' }}>
+                          🎙 Listen on Archive.org
+                        </a>
+                      )}
+                      {alreadySaved(show) ? (
+                        <div style={{ padding: '12px', borderRadius: '999px', textAlign: 'center', fontSize: '14px', fontWeight: 600, backgroundColor: '#F5F0E8', color: '#8BA5C0', border: '1px solid #8BA5C0' }}>
+                          ✓ Already in My Shows
+                        </div>
+                      ) : (
+                        <button onClick={(e) => { e.stopPropagation(); iWasThere(show) }} disabled={saving === show.id} style={{ width: '100%', padding: '12px', borderRadius: '999px', fontWeight: 600, fontSize: '14px', backgroundColor: saving === show.id ? '#5C7A9E' : '#2C4A6E', color: '#F5F0E8', border: 'none', cursor: 'pointer' }}>
+                          {saving === show.id ? 'Saving…' : 'I Was There 🌕'}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )
+            })}
             {page < totalPages && (
               <button onClick={() => search(page + 1)} disabled={loadingMore}
                 style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '16px', borderRadius: '999px', fontWeight: 600, fontSize: '16px', border: '1.5px solid #8BA5C0', color: '#5C7A9E', background: 'transparent', cursor: 'pointer', marginTop: '16px' }}>

@@ -18,6 +18,8 @@ export default function ProfilePage() {
   const [filterCity, setFilterCity] = useState<string>('all')
   const [search, setSearch] = useState('')
   const [showFilters, setShowFilters] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState<string | null>(null)
 
   useEffect(() => {
     const loadData = async () => {
@@ -89,6 +91,17 @@ export default function ProfilePage() {
 
   const formatDate = (d: string) => new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
   const handleSignOut = async () => { await supabase.auth.signOut(); router.push("/") }
+
+  const removeShow = async (id: string) => {
+    setDeleting(id)
+    try {
+      await supabase.from('setlists').delete().eq('checkin_id', id)
+      await supabase.from('checkins').delete().eq('id', id)
+      setCheckins(prev => prev.filter(c => c.id !== id))
+      setConfirmDelete(null)
+    } catch (e) { console.error(e) }
+    setDeleting(null)
+  }
 
   const chipStyle = (active: boolean) => ({
     padding: '8px 16px',
@@ -226,19 +239,41 @@ export default function ProfilePage() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {filteredCheckins.map((show) => (
-              <div key={show.id} onClick={() => router.push(`/show/${show.id}`)}
-                style={{ backgroundColor: '#EDE8DF', borderRadius: '16px', padding: '20px', border: '1px solid #8BA5C0', cursor: 'pointer' }}
-                onMouseEnter={e => (e.currentTarget.style.borderColor = '#2C4A6E')}
-                onMouseLeave={e => (e.currentTarget.style.borderColor = '#8BA5C0')}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
-                    <h3 style={{ fontWeight: 700, fontSize: '18px', color: '#2C4A6E', margin: '0 0 4px' }}>{show.artist}</h3>
-                    <p style={{ fontSize: '14px', color: '#5C7A9E', margin: '0 0 8px' }}>{show.venue}{show.city ? ` · ${show.city}` : ""}</p>
-                    <p style={{ fontSize: '14px', fontWeight: 500, color: '#2C4A6E', margin: 0 }}>{formatDate(show.date)}</p>
+              <div key={show.id} style={{ backgroundColor: '#EDE8DF', borderRadius: '16px', border: confirmDelete === show.id ? '1.5px solid #c0392b' : '1px solid #8BA5C0', overflow: 'hidden' }}>
+                <div onClick={() => { if (confirmDelete !== show.id) router.push(`/show/${show.id}`) }}
+                  style={{ padding: '20px', cursor: 'pointer' }}
+                  onMouseEnter={e => { if (confirmDelete !== show.id) e.currentTarget.style.backgroundColor = '#e8e3da' }}
+                  onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent' }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ flex: 1 }}>
+                      <h3 style={{ fontWeight: 700, fontSize: '18px', color: '#2C4A6E', margin: '0 0 4px' }}>{show.artist}</h3>
+                      <p style={{ fontSize: '14px', color: '#5C7A9E', margin: '0 0 8px' }}>{show.venue}{show.city ? ` · ${show.city}` : ""}</p>
+                      <p style={{ fontSize: '14px', fontWeight: 500, color: '#2C4A6E', margin: 0 }}>{formatDate(show.date)}</p>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <button onClick={(e) => { e.stopPropagation(); setConfirmDelete(confirmDelete === show.id ? null : show.id) }}
+                        style={{ background: 'none', border: 'none', color: '#8BA5C0', fontSize: '16px', cursor: 'pointer', padding: '4px', lineHeight: 1 }}
+                        title="Remove show">
+                        ✕
+                      </button>
+                      <span style={{ color: '#8BA5C0', fontSize: '18px' }}>→</span>
+                    </div>
                   </div>
-                  <span style={{ color: '#8BA5C0', fontSize: '18px' }}>→</span>
                 </div>
+                {confirmDelete === show.id && (
+                  <div style={{ padding: '0 20px 16px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <p style={{ flex: 1, fontSize: '13px', color: '#c0392b', margin: 0, fontWeight: 500 }}>Remove this show?</p>
+                    <button onClick={() => setConfirmDelete(null)}
+                      style={{ padding: '8px 16px', borderRadius: '999px', fontSize: '13px', fontWeight: 600, border: '1.5px solid #8BA5C0', color: '#5C7A9E', background: 'transparent', cursor: 'pointer' }}>
+                      Cancel
+                    </button>
+                    <button onClick={() => removeShow(show.id)} disabled={deleting === show.id}
+                      style={{ padding: '8px 16px', borderRadius: '999px', fontSize: '13px', fontWeight: 600, border: 'none', backgroundColor: '#c0392b', color: '#F5F0E8', cursor: 'pointer' }}>
+                      {deleting === show.id ? 'Removing…' : 'Remove'}
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
