@@ -237,8 +237,7 @@ function PastShowContent() {
                                         <div key={runningIndex} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', backgroundColor: '#F5F0E8', borderRadius: '10px' }}>
                                           <span style={{ color: '#8BA5C0', fontSize: '12px', fontWeight: 600, width: '24px', textAlign: 'right', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{runningIndex}</span>
                                           <div style={{ flex: 1 }}>
-                                            <p style={{ fontWeight: 600, color: '#2C4A6E', fontSize: '15px', margin: 0 }}>{song.name}</p>
-                                            {song.info && <p style={{ color: '#5C7A9E', fontSize: '12px', marginTop: '2px', marginBottom: 0 }}>{song.info}</p>}
+                                            <p style={{ fontWeight: 600, color: '#2C4A6E', fontSize: '15px', margin: 0 }}>{song.name}{song.info && <span style={{ color: '#5C7A9E', fontSize: '12px', fontWeight: 400, marginLeft: '6px' }}>{song.info}</span>}</p>
                                             {song.cover && <p style={{ color: '#8BA5C0', fontSize: '11px', marginTop: '2px', marginBottom: 0 }}>Cover: {song.cover}</p>}
                                           </div>
                                         </div>
