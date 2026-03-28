@@ -125,12 +125,19 @@ function DreamShowContent() {
       if (!user) { router.push('/auth'); return }
       const dp = show.date ? show.date.split('-') : []
       const dateFormatted = dp.length === 3 ? dp[2] + '-' + dp[1] + '-' + dp[0] : show.date || ''
-      await supabase.from('checkins').insert({
+      const { data: checkin } = await supabase.from('checkins').insert({
         user_id: user.id, artist: show.artist, venue: show.venue,
         city: show.city + (show.state ? ', ' + show.state : ''),
         date: dateFormatted, note: '', concert_id: show.id, source: 'setlist.fm',
         is_dream: true
-      })
+      }).select().single()
+      if (checkin && show.songs?.length > 0) {
+        await supabase.from('setlists').insert(show.songs.map((song: any, i: number) => ({
+          checkin_id: checkin.id, user_id: user.id,
+          song_title: song.name, note: song.info || '', position: i + 1,
+          set_name: song.encore ? (song.encore > 1 ? `Encore ${song.encore}` : 'Encore') : (song.setName || 'Set')
+        })))
+      }
       setSaved(prev => [...prev, show.id])
     } catch (e) { console.error(e) }
     setSaving('')
