@@ -94,7 +94,13 @@ export default function ProfilePage() {
 
   const clearFilters = () => { setFilterYear('all'); setFilterCity('all'); setSearch(''); setSortBy('date-desc') }
 
-  const formatDate = (d: string) => new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+  const formatDate = (d: string) => {
+    if (!d) return ''
+    const parts = d.split('-')
+    if (parts.length !== 3) return d
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    return months[parseInt(parts[1]) - 1] + ' ' + parseInt(parts[2]) + ', ' + parts[0]
+  }
   const handleSignOut = async () => { await supabase.auth.signOut(); router.push("/") }
 
   const removeShow = async (id: string) => {
