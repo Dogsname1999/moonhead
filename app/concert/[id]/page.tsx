@@ -43,7 +43,7 @@ export default function ConcertPage() {
 
         // Archive.org lookup
         try {
-          const archiveRes = await fetch('https://archive.org/advancedsearch.php?q=' + encodeURIComponent(data.artist + ' ' + data.date) + '&fl=identifier&sort=downloads+desc&output=json&rows=1')
+          const archiveRes = await fetch('https://archive.org/advancedsearch.php?q=' + encodeURIComponent('collection:etree AND creator:"' + data.artist + '" AND date:' + data.date) + '&fl=identifier&sort=downloads+desc&output=json&rows=1')
           const archiveData = await archiveRes.json()
           const id = archiveData?.response?.docs?.[0]?.identifier
           if (id) setArchiveUrl('https://archive.org/details/' + id)

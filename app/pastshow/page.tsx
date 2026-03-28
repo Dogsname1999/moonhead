@@ -64,7 +64,7 @@ function PastShowContent() {
       try {
         const dp = show.date ? show.date.split('-') : []
         const isoDate = dp.length === 3 ? dp[2] + '-' + dp[1] + '-' + dp[0] : show.date
-        const res = await fetch('https://archive.org/advancedsearch.php?q=' + encodeURIComponent(show.artist + ' ' + isoDate) + '&fl=identifier&sort=downloads+desc&output=json&rows=1')
+        const res = await fetch('https://archive.org/advancedsearch.php?q=' + encodeURIComponent('collection:etree AND creator:"' + show.artist + '" AND date:' + isoDate) + '&fl=identifier&sort=downloads+desc&output=json&rows=1')
         const data = await res.json()
         const id = data?.response?.docs?.[0]?.identifier
         if (id) setArchiveUrls(prev => ({ ...prev, [expandedShow]: 'https://archive.org/details/' + id }))

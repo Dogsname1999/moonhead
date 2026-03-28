@@ -23,7 +23,7 @@ export default function ShowPage() {
       setLoading(false)
       if (showData) {
         try {
-          const archiveRes = await fetch('https://archive.org/advancedsearch.php?q=' + encodeURIComponent(showData.artist + ' ' + showData.date) + '&fl=identifier&sort=downloads+desc&output=json&rows=1')
+          const archiveRes = await fetch('https://archive.org/advancedsearch.php?q=' + encodeURIComponent('collection:etree AND creator:"' + showData.artist + '" AND date:' + showData.date) + '&fl=identifier&sort=downloads+desc&output=json&rows=1')
           const archiveData = await archiveRes.json()
           const id = archiveData?.response?.docs?.[0]?.identifier
           if (id) setArchiveUrl('https://archive.org/details/' + id)
