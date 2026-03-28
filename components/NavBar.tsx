@@ -29,7 +29,7 @@ export default function NavBar({ backLabel, backPath }: { backLabel?: string; ba
 
         {/* Ticket logo */}
         <button onClick={() => router.push('/')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <img src="/ticket.png" alt="Moonhead" style={{ width: '48px', height: '48px', objectFit: 'contain' }} />
+          <img src="/ticket.png" alt="Moonhead" style={{ width: '72px', height: '72px', objectFit: 'contain' }} />
         </button>
 
         {/* Burger */}
