@@ -82,8 +82,8 @@ function MemoriesContent() {
         content: '', caption: photoCaption.trim(), image_url: imageUrl
       }).select().single()
       if (data) setMemories(prev => [...prev, data])
-      setPhotoPreview(null); setPhotoFile(null); setPhotoCaption('')
     } catch (e) { console.error(e) }
+    setPhotoPreview(null); setPhotoFile(null); setPhotoCaption('')
     setUploading(false)
   }
 
