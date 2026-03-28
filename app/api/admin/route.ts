@@ -19,6 +19,16 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
+  // Get all profiles for usernames
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('id, username')
+
+  const usernameMap: Record<string, string> = {}
+  profiles?.forEach(p => {
+    if (p.username) usernameMap[p.id] = p.username
+  })
+
   // Get all checkins
   const { data: checkins } = await supabase
     .from('checkins')
@@ -39,6 +49,7 @@ export async function GET(request: Request) {
   const userMap: Record<string, {
     userId: string
     email: string
+    username: string
     totalShows: number
     totalSongs: number
     firstCheckin: string
@@ -51,7 +62,8 @@ export async function GET(request: Request) {
     if (!userMap[c.user_id]) {
       userMap[c.user_id] = {
         userId: c.user_id,
-        email: '', // We'll fill admin's email, others stay as ID
+        email: '',
+        username: usernameMap[c.user_id] || '',
         totalShows: 0,
         totalSongs: 0,
         firstCheckin: c.created_at,

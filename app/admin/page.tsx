@@ -99,7 +99,7 @@ export default function AdminPage() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
                       <p style={{ fontWeight: 700, fontSize: '16px', color: '#2C4A6E', margin: 0 }}>
-                        {user.email || user.userId.slice(0, 8) + '...'}
+                        {user.username || user.email || user.userId.slice(0, 8) + '...'}
                         {user.email === 'warden@dogsname.com' && <span style={{ fontSize: '11px', color: '#8BA5C0', marginLeft: '8px' }}>ADMIN</span>}
                       </p>
                       <p style={{ color: '#8BA5C0', fontSize: '12px', margin: '4px 0 0' }}>
