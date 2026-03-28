@@ -9,6 +9,7 @@ export default function NavBar({ backLabel, backPath }: { backLabel?: string; ba
   const links = [
     { label: '🔍 Show Check-In', path: '/search' },
     { label: '🌕 I Was There', path: '/pastshow' },
+    { label: '✨ Wish I Was There', path: '/dreamshow' },
     { label: '🎵 My Shows', path: '/profile' },
     { label: '🔐 Sign In', path: '/auth' },
     { label: '🏠 Home', path: '/' },

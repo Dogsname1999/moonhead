@@ -65,7 +65,7 @@ export default function ShowPage() {
       <NavBar backLabel="My Shows" backPath="/profile" />
       <div style={{ maxWidth: '560px', margin: '0 auto', padding: '36px 24px 64px' }}>
         <div style={{ marginBottom: '36px' }}>
-          <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8BA5C0', marginBottom: '10px' }}>You were there</p>
+          <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8BA5C0', marginBottom: '10px' }}>{show.is_dream ? '✨ Wish I was there' : 'You were there'}</p>
           <h2 style={{ fontSize: '36px', fontWeight: 800, color: '#2C4A6E', marginBottom: '10px', lineHeight: 1.1, marginTop: 0 }}>{show.artist}</h2>
           <p style={{ fontSize: '17px', color: '#5C7A9E', marginBottom: '6px', marginTop: 0 }}>{show.venue}{show.city ? ' — ' + show.city : ''}</p>
           <p style={{ fontSize: '16px', color: '#8BA5C0', margin: 0 }}>{formatDate(show.date)}</p>

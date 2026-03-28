@@ -21,13 +21,18 @@ export default function ProfilePage() {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
 
+  const [dreams, setDreams] = useState<any[]>([])
+  const [tab, setTab] = useState<'shows' | 'dreams'>('shows')
+
   useEffect(() => {
     const loadData = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
       if (user) {
-        const { data } = await supabase.from("checkins").select("*").eq("user_id", user.id).order("created_at", { ascending: false })
+        const { data } = await supabase.from("checkins").select("*").eq("user_id", user.id).eq("is_dream", false).order("created_at", { ascending: false })
         setCheckins(data || [])
+        const { data: dreamData } = await supabase.from("checkins").select("*").eq("user_id", user.id).eq("is_dream", true).order("created_at", { ascending: false })
+        setDreams(dreamData || [])
       }
       setLoading(false)
     }
@@ -98,6 +103,7 @@ export default function ProfilePage() {
       await supabase.from('setlists').delete().eq('checkin_id', id)
       await supabase.from('checkins').delete().eq('id', id)
       setCheckins(prev => prev.filter(c => c.id !== id))
+      setDreams(prev => prev.filter(c => c.id !== id))
       setConfirmDelete(null)
     } catch (e) { console.error(e) }
     setDeleting(null)
@@ -129,13 +135,31 @@ export default function ProfilePage() {
 
         {/* Stats row */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '24px' }}>
-          {[{ value: checkins.length, label: 'Shows' }, { value: 0, label: 'Songs Logged' }, { value: 0, label: 'Photos' }].map(({ value, label }) => (
+          {[{ value: checkins.length, label: 'Shows' }, { value: dreams.length, label: 'Dream Shows' }, { value: 0, label: 'Photos' }].map(({ value, label }) => (
             <div key={label} style={{ backgroundColor: '#EDE8DF', borderRadius: '16px', padding: '18px', textAlign: 'center', border: '1px solid #8BA5C0' }}>
               <p style={{ fontSize: '26px', fontWeight: 700, color: '#2C4A6E', margin: 0 }}>{value}</p>
               <p style={{ fontSize: '12px', color: '#8BA5C0', marginTop: '4px', marginBottom: 0 }}>{label}</p>
             </div>
           ))}
         </div>
+
+        {/* Tab switcher */}
+        <div style={{ display: 'flex', gap: '0', marginBottom: '24px', borderRadius: '999px', overflow: 'hidden', border: '1.5px solid #8BA5C0' }}>
+          <button onClick={() => setTab('shows')}
+            style={{ flex: 1, padding: '12px', fontSize: '14px', fontWeight: 600, border: 'none', cursor: 'pointer',
+              backgroundColor: tab === 'shows' ? '#2C4A6E' : 'transparent', color: tab === 'shows' ? '#F5F0E8' : '#5C7A9E' }}>
+            🌕 My Shows ({checkins.length})
+          </button>
+          <button onClick={() => setTab('dreams')}
+            style={{ flex: 1, padding: '12px', fontSize: '14px', fontWeight: 600, border: 'none', cursor: 'pointer',
+              backgroundColor: tab === 'dreams' ? '#2C4A6E' : 'transparent', color: tab === 'dreams' ? '#F5F0E8' : '#5C7A9E',
+              borderLeft: '1.5px solid #8BA5C0' }}>
+            ✨ Dream Shows ({dreams.length})
+          </button>
+        </div>
+
+        {/* === MY SHOWS TAB === */}
+        {tab === 'shows' && <>
 
         {/* Sort & filter bar — only show when there are checkins */}
         {checkins.length > 0 && (
@@ -281,6 +305,67 @@ export default function ProfilePage() {
         <button onClick={() => router.push("/search")} style={{ width: '100%', marginTop: '36px', padding: '18px', borderRadius: '999px', fontWeight: 600, fontSize: '16px', backgroundColor: '#2C4A6E', color: '#F5F0E8', border: 'none', cursor: 'pointer' }}>
           + Check In to a Show
         </button>
+
+        </>}
+
+        {/* === DREAM SHOWS TAB === */}
+        {tab === 'dreams' && <>
+          {loading ? (
+            <p style={{ color: '#8BA5C0', textAlign: 'center', padding: '64px 0' }}>Loading dream shows...</p>
+          ) : dreams.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '64px 0' }}>
+              <p style={{ color: '#5C7A9E', fontSize: '18px', marginBottom: '8px' }}>No dream shows yet</p>
+              <p style={{ color: '#8BA5C0', fontSize: '14px' }}>Add shows you wish you&apos;d been at</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {dreams.map((show) => (
+                <div key={show.id} style={{ backgroundColor: '#EDE8DF', borderRadius: '16px', border: confirmDelete === show.id ? '1.5px solid #c0392b' : '1px solid #8BA5C0', overflow: 'hidden' }}>
+                  <div onClick={() => { if (confirmDelete !== show.id) router.push(`/show/${show.id}`) }}
+                    style={{ padding: '20px', cursor: 'pointer' }}
+                    onMouseEnter={e => { if (confirmDelete !== show.id) e.currentTarget.style.backgroundColor = '#e8e3da' }}
+                    onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'transparent' }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                          <span style={{ fontSize: '14px' }}>✨</span>
+                          <h3 style={{ fontWeight: 700, fontSize: '18px', color: '#2C4A6E', margin: 0 }}>{show.artist}</h3>
+                        </div>
+                        <p style={{ fontSize: '14px', color: '#5C7A9E', margin: '0 0 8px' }}>{show.venue}{show.city ? ` · ${show.city}` : ""}</p>
+                        <p style={{ fontSize: '14px', fontWeight: 500, color: '#2C4A6E', margin: 0 }}>{formatDate(show.date)}</p>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <button onClick={(e) => { e.stopPropagation(); setConfirmDelete(confirmDelete === show.id ? null : show.id) }}
+                          style={{ background: 'none', border: 'none', color: '#8BA5C0', fontSize: '16px', cursor: 'pointer', padding: '4px', lineHeight: 1 }}
+                          title="Remove show">
+                          ✕
+                        </button>
+                        <span style={{ color: '#8BA5C0', fontSize: '18px' }}>→</span>
+                      </div>
+                    </div>
+                  </div>
+                  {confirmDelete === show.id && (
+                    <div style={{ padding: '0 20px 16px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                      <p style={{ flex: 1, fontSize: '13px', color: '#c0392b', margin: 0, fontWeight: 500 }}>Remove this dream show?</p>
+                      <button onClick={() => setConfirmDelete(null)}
+                        style={{ padding: '8px 16px', borderRadius: '999px', fontSize: '13px', fontWeight: 600, border: '1.5px solid #8BA5C0', color: '#5C7A9E', background: 'transparent', cursor: 'pointer' }}>
+                        Cancel
+                      </button>
+                      <button onClick={() => removeShow(show.id)} disabled={deleting === show.id}
+                        style={{ padding: '8px 16px', borderRadius: '999px', fontSize: '13px', fontWeight: 600, border: 'none', backgroundColor: '#c0392b', color: '#F5F0E8', cursor: 'pointer' }}>
+                        {deleting === show.id ? 'Removing…' : 'Remove'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          <button onClick={() => router.push("/dreamshow")} style={{ width: '100%', marginTop: '36px', padding: '18px', borderRadius: '999px', fontWeight: 600, fontSize: '16px', backgroundColor: '#2C4A6E', color: '#F5F0E8', border: 'none', cursor: 'pointer' }}>
+            + Add a Dream Show
+          </button>
+        </>}
       </div>
     </div>
   )

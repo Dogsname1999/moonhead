@@ -6,7 +6,7 @@ import NavBar from '@/components/NavBar'
 
 const YEARS = Array.from({ length: 60 }, (_, i) => (2025 - i).toString())
 
-function PastShowContent() {
+function DreamShowContent() {
   const router = useRouter()
   const [artist, setArtist] = useState('')
   const [year, setYear] = useState('')
@@ -15,7 +15,7 @@ function PastShowContent() {
   const [saving, setSaving] = useState('')
   const [saved, setSaved] = useState<string[]>([])
   const [mbid, setMbid] = useState('')
-  const [myDates, setMyDates] = useState<string[]>([])
+  const [myDreams, setMyDreams] = useState<string[]>([])
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(0)
   const [totalResults, setTotalResults] = useState(0)
@@ -31,13 +31,13 @@ function PastShowContent() {
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   useEffect(() => {
-    const loadMyShows = async () => {
+    const loadMyDreams = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-      const { data } = await supabase.from('checkins').select('date,artist').eq('user_id', user.id)
-      if (data) setMyDates(data.map((c: any) => c.artist + '|' + c.date))
+      const { data } = await supabase.from('checkins').select('concert_id').eq('user_id', user.id).eq('is_dream', true)
+      if (data) setMyDreams(data.map((c: any) => c.concert_id).filter(Boolean))
     }
-    loadMyShows()
+    loadMyDreams()
   }, [])
 
   useEffect(() => {
@@ -83,17 +83,7 @@ function PastShowContent() {
   }
 
   const alreadySaved = (show: any) => {
-    if (saved.includes(show.id)) return true
-    if (!show.date || myDates.length === 0) return false
-    const parts = show.date.split('-')
-    if (parts.length !== 3) return false
-    const iso = parts[2] + '-' + parts[1] + '-' + parts[0]
-    return myDates.some(d =>
-      d === show.artist + '|' + iso ||
-      d === show.artist + '|' + show.date ||
-      d.includes(iso) ||
-      d.includes(show.date)
-    )
+    return saved.includes(show.id) || myDreams.includes(show.id)
   }
 
   const search = async (pageNum = 1) => {
@@ -128,27 +118,20 @@ function PastShowContent() {
     return months[parseInt(parts[1]) - 1] + ' ' + parseInt(parts[0]) + ', ' + parts[2]
   }
 
-  const iWasThere = async (show: any) => {
+  const wishIWasThere = async (show: any) => {
     setSaving(show.id)
     try {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/auth'); return }
       const dp = show.date ? show.date.split('-') : []
       const dateFormatted = dp.length === 3 ? dp[2] + '-' + dp[1] + '-' + dp[0] : show.date || ''
-      const { data: checkin } = await supabase.from('checkins').insert({
+      await supabase.from('checkins').insert({
         user_id: user.id, artist: show.artist, venue: show.venue,
         city: show.city + (show.state ? ', ' + show.state : ''),
-        date: dateFormatted, note: '', concert_id: show.id, source: 'setlist.fm'
-      }).select().single()
-      if (checkin && show.songs?.length > 0) {
-        await supabase.from('setlists').insert(show.songs.map((song: any, i: number) => ({
-          checkin_id: checkin.id, user_id: user.id,
-          song_title: song.name, note: song.info || '', position: i + 1,
-          set_name: song.encore ? (song.encore > 1 ? `Encore ${song.encore}` : 'Encore') : (song.setName || 'Set')
-        })))
-      }
+        date: dateFormatted, note: '', concert_id: show.id, source: 'setlist.fm',
+        is_dream: true
+      })
       setSaved(prev => [...prev, show.id])
-      if (checkin) setTimeout(() => router.push('/show/' + checkin.id), 800)
     } catch (e) { console.error(e) }
     setSaving('')
   }
@@ -158,8 +141,8 @@ function PastShowContent() {
       <NavBar backLabel="Home" backPath="/" />
       <div style={{ maxWidth: '480px', margin: '0 auto', padding: '36px 24px 64px' }}>
 
-        <h2 style={{ fontSize: '28px', fontWeight: 700, letterSpacing: '0.1em', color: '#2C4A6E', marginBottom: '8px', marginTop: 0 }}>I WAS THERE</h2>
-        <p style={{ color: '#5C7A9E', fontSize: '14px', marginBottom: '32px', marginTop: 0 }}>Log shows from your past</p>
+        <h2 style={{ fontSize: '28px', fontWeight: 700, letterSpacing: '0.1em', color: '#2C4A6E', marginBottom: '8px', marginTop: 0 }}>WISH I WAS THERE</h2>
+        <p style={{ color: '#5C7A9E', fontSize: '14px', marginBottom: '32px', marginTop: 0 }}>Build your dream show collection</p>
 
         <div style={{ position: 'relative', marginBottom: '12px' }}>
           <input ref={inputRef} type="text" value={artist}
@@ -212,7 +195,6 @@ function PastShowContent() {
               }
               return (
                 <div key={show.id} style={{ backgroundColor: '#EDE8DF', borderRadius: '16px', border: isExpanded ? '1.5px solid #2C4A6E' : '1px solid #8BA5C0', marginBottom: '12px', overflow: 'hidden' }}>
-                  {/* Clickable header */}
                   <div onClick={() => setExpandedShow(isExpanded ? null : show.id)}
                     style={{ padding: '20px', cursor: 'pointer' }}
                     onMouseEnter={e => { if (!isExpanded) e.currentTarget.style.backgroundColor = '#e8e3da' }}
@@ -230,7 +212,6 @@ function PastShowContent() {
                         <span style={{ color: '#8BA5C0', fontSize: '18px', transform: isExpanded ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }}>→</span>
                       </div>
                     </div>
-                    {/* Collapsed preview: just set names + song count */}
                     {!isExpanded && sets.length > 0 && (
                       <p style={{ color: '#8BA5C0', fontSize: '12px', margin: '8px 0 0' }}>
                         {sets.map(s => `${s.name} (${s.songs.length})`).join(' · ')}
@@ -238,34 +219,31 @@ function PastShowContent() {
                     )}
                   </div>
 
-                  {/* Expanded full setlist */}
                   {isExpanded && (
                     <div style={{ padding: '0 20px 20px' }}>
                       {sets.length > 0 && (() => {
                         let runningIndex = 0
                         return (
                           <div style={{ marginBottom: '16px' }}>
-                            {sets.map((set, si) => {
-                              return (
-                                <div key={si} style={{ marginBottom: si < sets.length - 1 ? '20px' : 0 }}>
-                                  <p style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#2C4A6E', margin: '0 0 8px', paddingBottom: '6px', borderBottom: '2px solid #8BA5C0' }}>{set.name}</p>
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                                    {set.songs.map((song: any) => {
-                                      runningIndex++
-                                      return (
-                                        <div key={runningIndex} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', backgroundColor: '#F5F0E8', borderRadius: '10px' }}>
-                                          <span style={{ color: '#8BA5C0', fontSize: '12px', fontWeight: 600, width: '24px', textAlign: 'right', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{runningIndex}</span>
-                                          <div style={{ flex: 1 }}>
-                                            <p style={{ fontWeight: 600, color: '#2C4A6E', fontSize: '15px', margin: 0 }}>{song.name}{song.info && <span style={{ color: '#5C7A9E', fontSize: '12px', fontWeight: 400, marginLeft: '6px' }}>{song.info}</span>}</p>
-                                            {song.cover && <p style={{ color: '#8BA5C0', fontSize: '11px', marginTop: '2px', marginBottom: 0 }}>Cover: {song.cover}</p>}
-                                          </div>
+                            {sets.map((set, si) => (
+                              <div key={si} style={{ marginBottom: si < sets.length - 1 ? '20px' : 0 }}>
+                                <p style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#2C4A6E', margin: '0 0 8px', paddingBottom: '6px', borderBottom: '2px solid #8BA5C0' }}>{set.name}</p>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                  {set.songs.map((song: any) => {
+                                    runningIndex++
+                                    return (
+                                      <div key={runningIndex} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 14px', backgroundColor: '#F5F0E8', borderRadius: '10px' }}>
+                                        <span style={{ color: '#8BA5C0', fontSize: '12px', fontWeight: 600, width: '24px', textAlign: 'right', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{runningIndex}</span>
+                                        <div style={{ flex: 1 }}>
+                                          <p style={{ fontWeight: 600, color: '#2C4A6E', fontSize: '15px', margin: 0 }}>{song.name}{song.info && <span style={{ color: '#5C7A9E', fontSize: '12px', fontWeight: 400, marginLeft: '6px' }}>{song.info}</span>}</p>
+                                          {song.cover && <p style={{ color: '#8BA5C0', fontSize: '11px', marginTop: '2px', marginBottom: 0 }}>Cover: {song.cover}</p>}
                                         </div>
-                                      )
-                                    })}
-                                  </div>
+                                      </div>
+                                    )
+                                  })}
                                 </div>
-                              )
-                            })}
+                              </div>
+                            ))}
                           </div>
                         )
                       })()}
@@ -276,11 +254,11 @@ function PastShowContent() {
                       )}
                       {alreadySaved(show) ? (
                         <div style={{ padding: '12px', borderRadius: '999px', textAlign: 'center', fontSize: '14px', fontWeight: 600, backgroundColor: '#F5F0E8', color: '#8BA5C0', border: '1px solid #8BA5C0' }}>
-                          ✓ Already in My Shows
+                          ✓ Added to Dream Shows
                         </div>
                       ) : (
-                        <button onClick={(e) => { e.stopPropagation(); iWasThere(show) }} disabled={saving === show.id} style={{ width: '100%', padding: '12px', borderRadius: '999px', fontWeight: 600, fontSize: '14px', backgroundColor: saving === show.id ? '#5C7A9E' : '#2C4A6E', color: '#F5F0E8', border: 'none', cursor: 'pointer' }}>
-                          {saving === show.id ? 'Saving…' : 'I Was There 🌕'}
+                        <button onClick={(e) => { e.stopPropagation(); wishIWasThere(show) }} disabled={saving === show.id} style={{ width: '100%', padding: '12px', borderRadius: '999px', fontWeight: 600, fontSize: '14px', backgroundColor: saving === show.id ? '#5C7A9E' : '#2C4A6E', color: '#F5F0E8', border: 'none', cursor: 'pointer' }}>
+                          {saving === show.id ? 'Saving…' : 'Wish I Was There ✨'}
                         </button>
                       )}
                       <button onClick={(e) => {
@@ -315,6 +293,6 @@ function PastShowContent() {
   )
 }
 
-export default function PastShowPage() {
-  return <Suspense><PastShowContent /></Suspense>
+export default function DreamShowPage() {
+  return <Suspense><DreamShowContent /></Suspense>
 }
