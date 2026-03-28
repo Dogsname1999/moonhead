@@ -13,6 +13,7 @@ export default function ShowPage() {
   const [loading, setLoading] = useState(true)
   const [archiveUrl, setArchiveUrl] = useState<string | null>(null)
   const [ebaySearches, setEbaySearches] = useState<any[]>([])
+  const [hasMemories, setHasMemories] = useState(false)
 
   useEffect(() => {
     const loadShow = async () => {
@@ -20,6 +21,8 @@ export default function ShowPage() {
       setShow(showData)
       const { data: songData } = await supabase.from('setlists').select('*').eq('checkin_id', params.id).order('position', { ascending: true })
       setSongs(songData || [])
+      const { count } = await supabase.from('memories').select('id', { count: 'exact', head: true }).eq('checkin_id', params.id)
+      if (count && count > 0) setHasMemories(true)
       setLoading(false)
       if (showData) {
         try {
@@ -129,7 +132,7 @@ export default function ShowPage() {
           </button>
           <button onClick={() => router.push('/memories?checkinId=' + show.id)}
             style={{ width: '100%', padding: '18px', borderRadius: '999px', fontWeight: 600, fontSize: '16px', border: '1.5px solid #8BA5C0', color: '#5C7A9E', background: 'transparent', cursor: 'pointer' }}>
-            Memories
+            {hasMemories ? 'View Memories' : 'Add Memories'}
           </button>
           <ShareCard artist={show.artist} venue={show.venue} city={show.city || ''} date={show.date} />
           {show.concert_id && (

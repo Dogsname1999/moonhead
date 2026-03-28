@@ -54,6 +54,12 @@ export default function Home() {
           Sign in / Create account
         </button>
 
+        <div style={{ display: 'flex', gap: '16px', marginTop: '40px', paddingTop: '20px', borderTop: '1px solid #EDE8DF' }}>
+          <button onClick={() => router.push('/terms')} style={{ background: 'none', border: 'none', fontSize: '12px', color: '#8BA5C0', cursor: 'pointer', padding: 0 }}>Terms of Service</button>
+          <span style={{ color: '#EDE8DF' }}>|</span>
+          <button onClick={() => router.push('/privacy')} style={{ background: 'none', border: 'none', fontSize: '12px', color: '#8BA5C0', cursor: 'pointer', padding: 0 }}>Privacy Policy</button>
+        </div>
+
       </div>
     </main>
   )
