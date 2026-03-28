@@ -79,12 +79,12 @@ function PastShowContent() {
 
   const search = async (pageNum = 1) => {
     if (!artist.trim()) return
-    if (pageNum === 1) setLoading(true)
+    if (pageNum === 1) { setLoading(true); setMbid('') }
     else setLoadingMore(true)
     try {
       let url = `/api/pastshows?artist=${encodeURIComponent(artist)}&page=${pageNum}`
       if (year) url += `&year=${year}`
-      if (mbid) url += `&mbid=${mbid}`
+      if (pageNum > 1 && mbid) url += `&mbid=${mbid}`
       const res = await fetch(url)
       const data = await res.json()
       if (pageNum === 1) {
