@@ -76,25 +76,48 @@ export default function ShowPage() {
             <p style={{ color: '#2C4A6E', lineHeight: 1.7, fontSize: '16px', margin: 0 }}>{show.note}</p>
           </div>
         )}
-        {songs.length > 0 && (
-          <div style={{ marginBottom: '32px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8BA5C0', margin: 0 }}>Set List</p>
-              <span style={{ fontSize: '14px', color: '#8BA5C0' }}>{songs.length} songs</span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {songs.map((song, index) => (
-                <div key={song.id} style={{ display: 'flex', alignItems: 'center', gap: '20px', backgroundColor: '#EDE8DF', borderRadius: '14px', padding: '18px 20px', border: '1px solid #8BA5C0' }}>
-                  <span style={{ color: '#8BA5C0', fontSize: '13px', fontWeight: 600, width: '28px', textAlign: 'right', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{index + 1}</span>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ fontWeight: 600, color: '#2C4A6E', fontSize: '17px', margin: 0 }}>{song.song_title}</p>
-                    {song.note && <p style={{ color: '#5C7A9E', fontSize: '14px', marginTop: '4px', marginBottom: 0 }}>{song.note}</p>}
+        {songs.length > 0 && (() => {
+          const sets: { name: string; songs: any[] }[] = []
+          songs.forEach((song) => {
+            const sn = song.set_name || 'Set'
+            const existing = sets.find(s => s.name === sn)
+            if (existing) existing.songs.push(song)
+            else sets.push({ name: sn, songs: [song] })
+          })
+          let runningIndex = 0
+          return (
+            <div style={{ marginBottom: '32px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8BA5C0', margin: 0 }}>Set List</p>
+                <span style={{ fontSize: '14px', color: '#8BA5C0' }}>{songs.length} songs</span>
+              </div>
+              {sets.map((set, si) => {
+                const setBlock = (
+                  <div key={si} style={{ marginBottom: si < sets.length - 1 ? '24px' : 0 }}>
+                    {(sets.length > 1 || set.name !== 'Set') && (
+                      <p style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#2C4A6E', margin: '0 0 10px', paddingBottom: '8px', borderBottom: '2px solid #8BA5C0' }}>{set.name}</p>
+                    )}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {set.songs.map((song) => {
+                        runningIndex++
+                        return (
+                          <div key={song.id} style={{ display: 'flex', alignItems: 'center', gap: '20px', backgroundColor: '#EDE8DF', borderRadius: '14px', padding: '18px 20px', border: '1px solid #8BA5C0' }}>
+                            <span style={{ color: '#8BA5C0', fontSize: '13px', fontWeight: 600, width: '28px', textAlign: 'right', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>{runningIndex}</span>
+                            <div style={{ flex: 1 }}>
+                              <p style={{ fontWeight: 600, color: '#2C4A6E', fontSize: '17px', margin: 0 }}>{song.song_title}</p>
+                              {song.note && <p style={{ color: '#5C7A9E', fontSize: '14px', marginTop: '4px', marginBottom: 0 }}>{song.note}</p>}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))}
+                )
+                return setBlock
+              })}
             </div>
-          </div>
-        )}
+          )
+        })()}
         {archiveUrl && (
           <a href={archiveUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '18px', borderRadius: '999px', textAlign: 'center', fontWeight: 600, fontSize: '16px', border: '1.5px solid #8BA5C0', color: '#5C7A9E', textDecoration: 'none', marginBottom: '16px' }}>
             🎙 Listen on Archive.org

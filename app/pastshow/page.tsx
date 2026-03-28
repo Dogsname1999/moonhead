@@ -123,7 +123,8 @@ function PastShowContent() {
       if (checkin && show.songs?.length > 0) {
         await supabase.from('setlists').insert(show.songs.map((song: any, i: number) => ({
           checkin_id: checkin.id, user_id: user.id,
-          song_title: song.name, note: song.info || '', position: i + 1
+          song_title: song.name, note: song.info || '', position: i + 1,
+          set_name: song.encore ? (song.encore > 1 ? `Encore ${song.encore}` : 'Encore') : (song.setName || 'Set')
         })))
       }
       setSaved(prev => [...prev, show.id])
@@ -190,17 +191,31 @@ function PastShowContent() {
                   </div>
                   <span style={{ color: '#8BA5C0', fontSize: '12px' }}>{show.totalSongs} songs</span>
                 </div>
-                {show.songs?.length > 0 && (
-                  <div style={{ marginBottom: '16px' }}>
-                    <p style={{ color: '#8BA5C0', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px' }}>Set List Preview</p>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                      {show.songs.slice(0, 6).map((song: any, i: number) => (
-                        <span key={i} style={{ fontSize: '12px', backgroundColor: '#F5F0E8', color: '#5C7A9E', padding: '4px 10px', borderRadius: '999px' }}>{song.name}</span>
+                {show.songs?.length > 0 && (() => {
+                  const sets: { name: string; songs: any[] }[] = []
+                  show.songs.forEach((song: any) => {
+                    const sn = song.encore ? (song.encore > 1 ? `Encore ${song.encore}` : 'Encore') : (song.setName || 'Set')
+                    const existing = sets.find(s => s.name === sn)
+                    if (existing) existing.songs.push(song)
+                    else sets.push({ name: sn, songs: [song] })
+                  })
+                  return (
+                    <div style={{ marginBottom: '16px' }}>
+                      <p style={{ color: '#8BA5C0', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px' }}>Set List Preview</p>
+                      {sets.map((set, si) => (
+                        <div key={si} style={{ marginBottom: si < sets.length - 1 ? '10px' : 0 }}>
+                          <p style={{ color: '#2C4A6E', fontSize: '11px', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 4px' }}>{set.name}</p>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            {set.songs.slice(0, 4).map((song: any, i: number) => (
+                              <span key={i} style={{ fontSize: '12px', backgroundColor: '#F5F0E8', color: '#5C7A9E', padding: '4px 10px', borderRadius: '999px' }}>{song.name}</span>
+                            ))}
+                            {set.songs.length > 4 && <span style={{ fontSize: '12px', color: '#8BA5C0', padding: '4px 8px' }}>+{set.songs.length - 4} more</span>}
+                          </div>
+                        </div>
                       ))}
-                      {show.songs.length > 6 && <span style={{ fontSize: '12px', color: '#8BA5C0', padding: '4px 8px' }}>+{show.songs.length - 6} more</span>}
                     </div>
-                  </div>
-                )}
+                  )
+                })()}
                 {show.archiveUrl && (
                   <a href={show.archiveUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '999px', textAlign: 'center', fontSize: '14px', fontWeight: 600, border: '1.5px solid #8BA5C0', color: '#5C7A9E', textDecoration: 'none', marginBottom: '10px' }}>
                     🎙 Listen on Archive.org
