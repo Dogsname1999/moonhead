@@ -127,7 +127,7 @@ export default function ShowPage() {
             style={{ width: '100%', padding: '18px', borderRadius: '999px', fontWeight: 600, fontSize: '16px', backgroundColor: '#2C4A6E', color: '#F5F0E8', border: 'none', cursor: 'pointer' }}>
             {songs.length > 0 ? 'Edit Set List' : 'Track Set List'}
           </button>
-          <button onClick={() => router.push('/memories')}
+          <button onClick={() => router.push('/memories?checkinId=' + show.id)}
             style={{ width: '100%', padding: '18px', borderRadius: '999px', fontWeight: 600, fontSize: '16px', border: '1.5px solid #8BA5C0', color: '#5C7A9E', background: 'transparent', cursor: 'pointer' }}>
             Memories
           </button>
