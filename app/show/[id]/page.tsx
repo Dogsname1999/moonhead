@@ -132,6 +132,17 @@ export default function ShowPage() {
             Memories
           </button>
           <ShareCard artist={show.artist} venue={show.venue} city={show.city || ''} date={show.date} />
+          {show.concert_id && (
+            <button id="share-show-btn" onClick={() => {
+              const url = `${window.location.origin}/concert/${show.concert_id}`
+              navigator.clipboard?.writeText(url)
+              const el = document.getElementById('share-show-btn')
+              if (el) { el.textContent = 'Link Copied!'; setTimeout(() => { el.textContent = '🔗 Share This Show' }, 2000) }
+            }}
+              style={{ width: '100%', padding: '16px', borderRadius: '999px', fontWeight: 600, fontSize: '15px', border: '1.5px solid #8BA5C0', color: '#5C7A9E', background: 'transparent', cursor: 'pointer' }}>
+              🔗 Share This Show
+            </button>
+          )}
         </div>
         {ebaySearches.length > 0 && (
           <div style={{ marginTop: '28px' }}>
