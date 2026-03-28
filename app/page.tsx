@@ -23,7 +23,7 @@ export default function Home() {
           onClick={() => router.push('/search')}
           style={{ width: '100%', padding: '16px 32px', borderRadius: '999px', fontSize: '18px', fontWeight: 700, backgroundColor: '#2C4A6E', color: '#F5F0E8', border: 'none', cursor: 'pointer', marginBottom: '14px', letterSpacing: '0.01em' }}
         >
-          Find Your Show
+          Show Check-In
         </button>
 
         <button
