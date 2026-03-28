@@ -21,7 +21,11 @@ export default function AuthPage() {
       if (error) { setError(error.message) }
       else if (data.user) {
         await supabase.from('profiles').insert({ id: data.user.id, username })
-        setMessage('Check your email to confirm your account!')
+        if (data.session) {
+          router.push('/')
+        } else {
+          setMessage('Check your email to confirm your account!')
+        }
       }
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
