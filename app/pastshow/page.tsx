@@ -16,6 +16,10 @@ function PastShowContent() {
   const [saved, setSaved] = useState<string[]>([])
   const [mbid, setMbid] = useState('')
   const [myDates, setMyDates] = useState<string[]>([])
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(0)
+  const [totalResults, setTotalResults] = useState(0)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [suggestions, setSuggestions] = useState<any[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [highlightIndex, setHighlightIndex] = useState(-1)
@@ -72,19 +76,28 @@ function PastShowContent() {
     )
   }
 
-  const search = async () => {
+  const search = async (pageNum = 1) => {
     if (!artist.trim()) return
-    setLoading(true)
+    if (pageNum === 1) setLoading(true)
+    else setLoadingMore(true)
     try {
-      let url = `/api/pastshows?artist=${encodeURIComponent(artist)}`
+      let url = `/api/pastshows?artist=${encodeURIComponent(artist)}&page=${pageNum}`
       if (year) url += `&year=${year}`
       if (mbid) url += `&mbid=${mbid}`
       const res = await fetch(url)
       const data = await res.json()
-      setResults(data.results || [])
+      if (pageNum === 1) {
+        setResults(data.results || [])
+      } else {
+        setResults(prev => [...prev, ...(data.results || [])])
+      }
       if (data.mbid) setMbid(data.mbid)
+      setPage(data.page || pageNum)
+      setTotalPages(data.totalPages || 0)
+      setTotalResults(data.totalResults || 0)
     } catch (e) { console.error(e) }
     setLoading(false)
+    setLoadingMore(false)
   }
 
   const formatDate = (d: string) => {
@@ -132,7 +145,7 @@ function PastShowContent() {
             onChange={(e) => { setArtist(e.target.value); searchedRef.current = false }}
             onFocus={() => { if (suggestions.length > 0 && !searchedRef.current) setShowSuggestions(true) }}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') { if (highlightIndex >= 0 && showSuggestions) { selectArtist(suggestions[highlightIndex].name) } else { setShowSuggestions(false); searchedRef.current = true; search() } }
+              if (e.key === 'Enter') { if (highlightIndex >= 0 && showSuggestions) { selectArtist(suggestions[highlightIndex].name) } else { setShowSuggestions(false); searchedRef.current = true; setPage(1); search(1) } }
               else if (e.key === 'Escape') { setShowSuggestions(false) }
               else if (e.key === 'ArrowDown' && showSuggestions) { e.preventDefault(); setHighlightIndex(i => Math.min(i + 1, suggestions.length - 1)) }
               else if (e.key === 'ArrowUp' && showSuggestions) { e.preventDefault(); setHighlightIndex(i => Math.max(i - 1, 0)) }
@@ -158,13 +171,13 @@ function PastShowContent() {
           {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
         </select>
 
-        <button onClick={search} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '16px', borderRadius: '999px', fontWeight: 600, fontSize: '16px', backgroundColor: '#2C4A6E', color: '#F5F0E8', border: 'none', cursor: 'pointer', marginBottom: '32px' }}>
+        <button onClick={() => { setPage(1); search(1) }} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '16px', borderRadius: '999px', fontWeight: 600, fontSize: '16px', backgroundColor: '#2C4A6E', color: '#F5F0E8', border: 'none', cursor: 'pointer', marginBottom: '32px' }}>
           {loading ? 'Searching…' : 'Find Shows'}
         </button>
 
         {results.length > 0 && (
           <div>
-            <p style={{ color: '#8BA5C0', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '16px' }}>{results.length} shows found</p>
+            <p style={{ color: '#8BA5C0', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '16px' }}>Showing {results.length}{totalResults > 0 ? ` of ${totalResults}` : ''} shows</p>
             {results.map((show) => (
               <div key={show.id} style={{ backgroundColor: '#EDE8DF', borderRadius: '16px', padding: '20px', border: '1px solid #8BA5C0', marginBottom: '12px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
@@ -204,6 +217,12 @@ function PastShowContent() {
                 )}
               </div>
             ))}
+            {page < totalPages && (
+              <button onClick={() => search(page + 1)} disabled={loadingMore}
+                style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '16px', borderRadius: '999px', fontWeight: 600, fontSize: '16px', border: '1.5px solid #8BA5C0', color: '#5C7A9E', background: 'transparent', cursor: 'pointer', marginTop: '16px' }}>
+                {loadingMore ? 'Loading…' : `Load More Shows (page ${page + 1} of ${totalPages})`}
+              </button>
+            )}
           </div>
         )}
 

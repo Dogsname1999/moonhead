@@ -21,13 +21,18 @@ export async function GET(request: NextRequest) {
 
     if (!artistMbid) return NextResponse.json({ results: [], error: 'Artist not found' })
 
-    let url = 'https://api.setlist.fm/rest/1.0/search/setlists?artistMbid=' + artistMbid + '&p=1'
+    const page = parseInt(searchParams.get('page') || '1')
+    let url = 'https://api.setlist.fm/rest/1.0/search/setlists?artistMbid=' + artistMbid + '&p=' + page
     if (year) url += '&year=' + year
 
     const res = await fetch(url, {
       headers: { 'x-api-key': SLF_KEY || '', 'Accept': 'application/json' }
     })
     const data = await res.json()
+
+    const totalResults = data.total || 0
+    const itemsPerPage = data.itemsPerPage || 20
+    const totalPages = Math.ceil(totalResults / itemsPerPage)
 
     const results = (data.setlist || []).map((show: any) => {
       const songs = show.sets?.set?.flatMap((s: any) =>
@@ -56,7 +61,7 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    return NextResponse.json({ results, mbid: artistMbid })
+    return NextResponse.json({ results, mbid: artistMbid, page, totalPages, totalResults })
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch shows' }, { status: 500 })
   }
