@@ -1,11 +1,13 @@
 'use client'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import NavBar from '@/components/NavBar'
 
 export default function AuthPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirect = searchParams.get('redirect') || '/'
   const [mode, setMode] = useState<'login' | 'signup'>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -22,14 +24,14 @@ export default function AuthPage() {
       else if (data.user) {
         await supabase.from('profiles').insert({ id: data.user.id, username })
         if (data.session) {
-          router.push('/')
+          router.push(redirect)
         } else {
           setMessage('Check your email to confirm your account!')
         }
       }
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) { setError(error.message) } else { router.push('/') }
+      if (error) { setError(error.message) } else { router.push(redirect) }
     }
     setLoading(false)
   }
