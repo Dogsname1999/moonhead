@@ -7,7 +7,7 @@ export default function NavBar({ backLabel, backPath }: { backLabel?: string; ba
   const router = useRouter()
 
   const links = [
-    { label: '🔍 Show Check-In', path: '/search' },
+    { label: '🔍 Find Shows', path: '/search' },
     { label: '🌕 I Was There', path: '/pastshow' },
     { label: '✨ Wish I Was There', path: '/dreamshow' },
     { label: '🎵 My Shows', path: '/profile' },

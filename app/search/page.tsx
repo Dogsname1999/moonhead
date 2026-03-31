@@ -231,9 +231,26 @@ export default function SearchPage() {
                 <p style={{ fontSize: '14px', color: '#5C7A9E', margin: '4px 0' }}>{concert.venue} · {concert.city}</p>
                 <p style={{ fontSize: '14px', fontWeight: 500, color: '#2C4A6E', margin: '8px 0 16px' }}>{formatDate(concert.date)}</p>
                 <button onClick={() => router.push(`/checkin?id=${concert.id}&artist=${encodeURIComponent(concert.artist)}&venue=${encodeURIComponent(concert.venue)}&city=${encodeURIComponent(concert.city)}&date=${concert.date}`)}
-                  style={{ width: '100%', padding: '12px', borderRadius: '999px', fontSize: '14px', fontWeight: 600, border: '1.5px solid #2C4A6E', color: '#2C4A6E', background: 'transparent', cursor: 'pointer' }}>
+                  style={{ width: '100%', padding: '12px', borderRadius: '999px', fontSize: '14px', fontWeight: 600, border: '1.5px solid #2C4A6E', color: '#2C4A6E', background: 'transparent', cursor: 'pointer', marginBottom: '8px' }}>
                   Check In Here 🎶
                 </button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {concert.url ? (
+                    <a href={concert.url} target="_blank" rel="noopener noreferrer"
+                      style={{ flex: 1, display: 'block', padding: '10px', borderRadius: '999px', fontSize: '13px', fontWeight: 600, textAlign: 'center', textDecoration: 'none', backgroundColor: '#2C4A6E', color: '#F5F0E8' }}>
+                      🎟 Buy Tickets
+                    </a>
+                  ) : (
+                    <a href={`https://www.ticketmaster.com/search?q=${encodeURIComponent(concert.artist)}`} target="_blank" rel="noopener noreferrer"
+                      style={{ flex: 1, display: 'block', padding: '10px', borderRadius: '999px', fontSize: '13px', fontWeight: 600, textAlign: 'center', textDecoration: 'none', backgroundColor: '#2C4A6E', color: '#F5F0E8' }}>
+                      🎟 Ticketmaster
+                    </a>
+                  )}
+                  <a href={`https://www.stubhub.com/${encodeURIComponent(concert.artist.toLowerCase().replace(/\s+/g, '-'))}-tickets`} target="_blank" rel="noopener noreferrer"
+                    style={{ flex: 1, display: 'block', padding: '10px', borderRadius: '999px', fontSize: '13px', fontWeight: 600, textAlign: 'center', textDecoration: 'none', border: '1.5px solid #5C7A9E', color: '#5C7A9E', backgroundColor: 'transparent' }}>
+                    🎫 StubHub
+                  </a>
+                </div>
               </div>
             ))}
           </div>
