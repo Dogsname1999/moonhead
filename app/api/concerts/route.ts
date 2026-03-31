@@ -7,7 +7,6 @@ export async function GET(request: NextRequest) {
   const lng = searchParams.get('lng')
 
   const TM_KEY = process.env.TICKETMASTER_API_KEY
-  const SLF_KEY = process.env.SETLISTFM_API_KEY
 
   try {
     const results: any[] = []
@@ -22,14 +21,16 @@ export async function GET(request: NextRequest) {
     if (tmData._embedded?.events) {
       const queryLower = query.toLowerCase()
       tmData._embedded.events.forEach((event: any) => {
-        const artistName = event._embedded?.attractions?.[0]?.name || event.name
-        const eventName = event.name || ''
-        // Filter: artist or event name must contain the search query
-        if (query && !artistName.toLowerCase().includes(queryLower) && !eventName.toLowerCase().includes(queryLower)) return
+        // Check if any attraction matches the search query
+        const attractions = event._embedded?.attractions || []
+        const matchingAttraction = attractions.find((a: any) => a.name?.toLowerCase().includes(queryLower))
+        // Only include if the searched artist is in the lineup
+        if (query && !matchingAttraction) return
+        const artistName = matchingAttraction?.name || attractions[0]?.name || event.name
         results.push({
           id: `tm_${event.id}`,
           source: 'ticketmaster',
-          name: eventName,
+          name: event.name || '',
           artist: artistName,
           venue: event._embedded?.venues?.[0]?.name || 'Unknown Venue',
           city: event._embedded?.venues?.[0]?.city?.name || '',
@@ -41,40 +42,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    if (query) {
-      const artistRes = await fetch(
-        `https://api.setlist.fm/rest/1.0/search/artists?artistName=${encodeURIComponent(query)}&p=1&sort=relevance`,
-        { headers: { 'x-api-key': SLF_KEY || '', 'Accept': 'application/json' } }
-      )
-      const artistData = await artistRes.json()
-      const mbid = artistData?.artist?.[0]?.mbid
-
-      if (mbid) {
-        const setlistRes = await fetch(
-          `https://api.setlist.fm/rest/1.0/artist/${mbid}/setlists?p=1`,
-          { headers: { 'x-api-key': SLF_KEY || '', 'Accept': 'application/json' } }
-        )
-        const setlistData = await setlistRes.json()
-
-        if (setlistData?.setlist) {
-          setlistData.setlist.slice(0, 5).forEach((show: any) => {
-            results.push({
-              id: `slf_${show.id}`,
-              source: 'setlist.fm',
-              name: `${query} at ${show.venue?.name}`,
-              artist: query,
-              venue: show.venue?.name || 'Unknown Venue',
-              city: show.venue?.city?.name || '',
-              date: show.eventDate ? show.eventDate.split('-').reverse().join('-') : '',
-              time: '',
-              image: '',
-              url: show.url || '',
-              songs: show.sets?.set?.flatMap((s: any) => s.song?.map((sg: any) => sg.name) || []) || [],
-            })
-          })
-        }
-      }
-    }
+    // Only upcoming shows from Ticketmaster — past shows use "I Was There" flow
 
     return NextResponse.json({ results })
   } catch (error) {
