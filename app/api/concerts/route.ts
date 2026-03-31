@@ -20,12 +20,17 @@ export async function GET(request: NextRequest) {
     const tmData = await tmRes.json()
 
     if (tmData._embedded?.events) {
+      const queryLower = query.toLowerCase()
       tmData._embedded.events.forEach((event: any) => {
+        const artistName = event._embedded?.attractions?.[0]?.name || event.name
+        const eventName = event.name || ''
+        // Filter: artist or event name must contain the search query
+        if (query && !artistName.toLowerCase().includes(queryLower) && !eventName.toLowerCase().includes(queryLower)) return
         results.push({
           id: `tm_${event.id}`,
           source: 'ticketmaster',
-          name: event.name,
-          artist: event._embedded?.attractions?.[0]?.name || event.name,
+          name: eventName,
+          artist: artistName,
           venue: event._embedded?.venues?.[0]?.name || 'Unknown Venue',
           city: event._embedded?.venues?.[0]?.city?.name || '',
           date: event.dates?.start?.localDate || '',
