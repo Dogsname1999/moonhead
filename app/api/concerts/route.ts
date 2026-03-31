@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   try {
     const results: any[] = []
 
-    let tmUrl = `https://app.ticketmaster.com/discovery/v2/events.json?apikey=${TM_KEY}&classificationName=music&size=10`
+    let tmUrl = `https://app.ticketmaster.com/discovery/v2/events.json?apikey=${TM_KEY}&classificationName=music&size=10&sort=date,asc`
     if (query) tmUrl += `&keyword=${encodeURIComponent(query)}`
     if (lat && lng) tmUrl += `&latlong=${lat},${lng}&radius=25&unit=miles`
 
@@ -42,7 +42,8 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Only upcoming shows from Ticketmaster — past shows use "I Was There" flow
+    // Sort chronologically
+    results.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
     return NextResponse.json({ results })
   } catch (error) {
