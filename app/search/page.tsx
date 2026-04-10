@@ -69,15 +69,20 @@ export default function SearchPage() {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
+  const [lastSearchWasLocation, setLastSearchWasLocation] = useState(false)
+
   const search = async (q: string, lat?: number, lng?: number) => {
     searchedRef.current = true
     setSuggestions([])
     setShowSuggestions(false)
     inputRef.current?.blur()
     setLoading(true)
+    setLastSearchWasLocation(typeof lat === 'number' && typeof lng === 'number')
     try {
       let url = `/api/concerts?query=${encodeURIComponent(q)}`
-      if (lat && lng) url += `&lat=${lat}&lng=${lng}`
+      if (typeof lat === 'number' && typeof lng === 'number') {
+        url += `&lat=${lat}&lng=${lng}`
+      }
       const res = await fetch(url)
       const data = await res.json()
       setResults(data.results || [])
@@ -134,10 +139,29 @@ export default function SearchPage() {
   }
 
   const useMyLocation = () => {
+    if (!navigator.geolocation) {
+      alert('Your browser does not support location.')
+      return
+    }
     setLocationLoading(true)
+    // Dismiss autocomplete so the Near Me button isn't obscured by suggestions
+    setSuggestions([])
+    setShowSuggestions(false)
+    inputRef.current?.blur()
     navigator.geolocation.getCurrentPosition(
-      (pos) => { setLocationLoading(false); search(query, pos.coords.latitude, pos.coords.longitude) },
-      () => { setLocationLoading(false); alert('Could not get your location.') }
+      (pos) => {
+        setLocationLoading(false)
+        search(query, pos.coords.latitude, pos.coords.longitude)
+      },
+      (err) => {
+        setLocationLoading(false)
+        if (err.code === err.PERMISSION_DENIED) {
+          alert('Location permission denied. Please allow location access in your browser settings and try again.')
+        } else {
+          alert('Could not get your location. Please try again.')
+        }
+      },
+      { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
     )
   }
 
@@ -255,8 +279,12 @@ export default function SearchPage() {
             ))}
           </div>
         )}
-        {!loading && results.length === 0 && query && (
-          <p style={{ color: '#8BA5C0', textAlign: 'center', marginTop: '32px' }}>No shows found. Try another search.</p>
+        {!loading && results.length === 0 && (query || lastSearchWasLocation) && searchedRef.current && (
+          <p style={{ color: '#8BA5C0', textAlign: 'center', marginTop: '32px' }}>
+            {lastSearchWasLocation
+              ? 'No upcoming shows found within 25 miles.'
+              : 'No shows found. Try another search.'}
+          </p>
         )}
       </div>
     </div>
