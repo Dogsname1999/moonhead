@@ -1,17 +1,40 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
 
 export default function NavBar({ backLabel, backPath }: { backLabel?: string; backPath?: string }) {
   const [open, setOpen] = useState(false)
+  const [user, setUser] = useState<any>(null)
+  const [username, setUsername] = useState<string | null>(null)
   const router = useRouter()
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        setUser(data.user)
+        // Fetch username from profiles
+        supabase.from('profiles').select('username').eq('id', data.user.id).single()
+          .then(({ data: profile }) => {
+            if (profile?.username) setUsername(profile.username)
+          })
+      }
+    })
+  }, [])
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    setUser(null)
+    setUsername(null)
+    setOpen(false)
+    router.push('/')
+  }
 
   const links = [
     { label: '🔍 Find Shows', path: '/search' },
     { label: '🌕 I Was There', path: '/pastshow' },
     { label: '✨ Wish I Was There', path: '/dreamshow' },
     { label: '🎵 My Shows', path: '/profile' },
-    { label: '🔐 Sign In', path: '/auth' },
     { label: '🏠 Home', path: '/' },
   ]
 
@@ -60,6 +83,26 @@ export default function NavBar({ backLabel, backPath }: { backLabel?: string; ba
               {link.label}
             </button>
           ))}
+
+          {/* Auth section */}
+          {user ? (
+            <>
+              <div style={{ padding: '20px 0 8px', borderBottom: '1px solid #EDE8DF' }}>
+                <p style={{ fontSize: '14px', fontWeight: 700, color: '#2C4A6E', margin: '0 0 4px' }}>
+                  {username || user.email}
+                </p>
+                <button onClick={handleSignOut}
+                  style={{ background: 'none', border: 'none', padding: 0, fontSize: '14px', color: '#5C7A9E', cursor: 'pointer', textDecoration: 'underline' }}>
+                  Log Out
+                </button>
+              </div>
+            </>
+          ) : (
+            <button onClick={() => { router.push('/auth'); setOpen(false) }}
+              style={{ background: 'none', border: 'none', textAlign: 'left', padding: '16px 0', fontSize: '17px', fontWeight: 600, color: '#2C4A6E', cursor: 'pointer', borderBottom: '1px solid #EDE8DF' }}>
+              🔐 Sign In / Create Account
+            </button>
+          )}
         </nav>
       </div>
     </>
