@@ -29,7 +29,7 @@ export default function ProfilePage() {
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
       if (user) {
-        const { data } = await supabase.from("checkins").select("*").eq("user_id", user.id).eq("is_dream", false).order("created_at", { ascending: false })
+        const { data } = await supabase.from("checkins").select("*").eq("user_id", user.id).or("is_dream.eq.false,is_dream.is.null").order("created_at", { ascending: false })
         setCheckins(data || [])
         const { data: dreamData } = await supabase.from("checkins").select("*").eq("user_id", user.id).eq("is_dream", true).order("created_at", { ascending: false })
         setDreams(dreamData || [])

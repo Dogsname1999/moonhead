@@ -44,7 +44,8 @@ function CheckInContent() {
     setLoading(true)
     try {
       if (user) {
-        const { data } = await supabase.from('checkins').insert({ user_id: user.id, artist, venue, city, date, note, concert_id: concertId }).select().single()
+        const { data, error: insertError } = await supabase.from('checkins').insert({ user_id: user.id, artist, venue, city, date, note, concert_id: concertId, is_dream: false }).select().single()
+        if (insertError) { console.error('Insert error:', insertError); setLoading(false); return }
         if (data) setCheckinId(data.id)
       }
     } catch (e) { console.error(e) }

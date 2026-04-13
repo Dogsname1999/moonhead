@@ -156,11 +156,12 @@ function PastShowContent() {
       if (!user) { router.push('/auth?redirect=/pastshow'); return }
       const dp = show.date ? show.date.split('-') : []
       const dateFormatted = dp.length === 3 ? dp[2] + '-' + dp[1] + '-' + dp[0] : show.date || ''
-      const { data: checkin } = await supabase.from('checkins').insert({
+      const { data: checkin, error: insertError } = await supabase.from('checkins').insert({
         user_id: user.id, artist: show.artist, venue: show.venue,
         city: show.city + (show.state ? ', ' + show.state : ''),
-        date: dateFormatted, note: '', concert_id: show.id, source: 'setlist.fm'
+        date: dateFormatted, note: '', concert_id: show.id, source: 'setlist.fm', is_dream: false
       }).select().single()
+      if (insertError) { console.error('Insert error:', insertError); setSaving(''); return }
       if (checkin && show.songs?.length > 0) {
         await supabase.from('setlists').insert(show.songs.map((song: any, i: number) => ({
           checkin_id: checkin.id, user_id: user.id,
@@ -168,8 +169,10 @@ function PastShowContent() {
           set_name: song.encore ? (song.encore > 1 ? `Encore ${song.encore}` : 'Encore') : (song.setName || 'Set')
         })))
       }
-      setSaved(prev => [...prev, show.id])
-      if (checkin) setTimeout(() => router.push('/show/' + checkin.id), 800)
+      if (checkin) {
+        setSaved(prev => [...prev, show.id])
+        setTimeout(() => router.push('/show/' + checkin.id), 800)
+      }
     } catch (e) { console.error(e) }
     setSaving('')
   }

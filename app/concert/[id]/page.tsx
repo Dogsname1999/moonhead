@@ -70,11 +70,12 @@ export default function ConcertPage() {
     try {
       const dp = show.date ? show.date.split('-') : []
       const dateFormatted = dp.length === 3 ? dp[2] + '-' + dp[1] + '-' + dp[0] : show.date || ''
-      const { data: checkin } = await supabase.from('checkins').insert({
+      const { data: checkin, error: insertError } = await supabase.from('checkins').insert({
         user_id: user.id, artist: show.artist, venue: show.venue,
         city: show.city + (show.state ? ', ' + show.state : ''),
-        date: dateFormatted, note: '', concert_id: show.id, source: 'setlist.fm'
+        date: dateFormatted, note: '', concert_id: show.id, source: 'setlist.fm', is_dream: false
       }).select().single()
+      if (insertError) { console.error('Insert error:', insertError); setSaving(false); return }
       if (checkin && show.songs?.length > 0) {
         await supabase.from('setlists').insert(show.songs.map((song: any, i: number) => ({
           checkin_id: checkin.id, user_id: user.id,
@@ -82,8 +83,10 @@ export default function ConcertPage() {
           set_name: song.encore ? (song.encore > 1 ? `Encore ${song.encore}` : 'Encore') : (song.setName || 'Set')
         })))
       }
-      setSaved(true)
-      if (checkin) setTimeout(() => router.push('/show/' + checkin.id), 1200)
+      if (checkin) {
+        setSaved(true)
+        setTimeout(() => router.push('/show/' + checkin.id), 1200)
+      }
     } catch (e) { console.error(e) }
     setSaving(false)
   }
@@ -100,7 +103,7 @@ export default function ConcertPage() {
     <div style={{ minHeight: '100vh', backgroundColor: '#F5F0E8', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
       <p style={{ color: '#8BA5C0', fontSize: '18px', marginBottom: '16px' }}>{error || 'Show not found'}</p>
       <button onClick={() => router.push('/')} style={{ padding: '12px 24px', borderRadius: '999px', fontWeight: 600, fontSize: '14px', backgroundColor: '#2C4A6E', color: '#F5F0E8', border: 'none', cursor: 'pointer' }}>
-        Go to Moonhead
+        Go to Tourbustix
       </button>
     </div>
   )
