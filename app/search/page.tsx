@@ -13,6 +13,7 @@ export default function SearchPage() {
   const [results, setResults] = useState<Concert[]>([])
   const [loading, setLoading] = useState(false)
   const [locationLoading, setLocationLoading] = useState(false)
+  const [lastSearchWasLocation, setLastSearchWasLocation] = useState(false)
   const router = useRouter()
 
   // Artist autocomplete state
@@ -23,9 +24,23 @@ export default function SearchPage() {
   const suggestionsRef = useRef<HTMLDivElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const justSelectedRef = useRef(false)
-
-  // Fetch artist suggestions as user types — but NOT after a selection or search
   const searchedRef = useRef(false)
+
+  // Restore previous search results when navigating back to this page
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem('search_state')
+      if (saved) {
+        const state = JSON.parse(saved)
+        if (state.query !== undefined) setQuery(state.query)
+        if (state.results?.length > 0) {
+          setResults(state.results)
+          searchedRef.current = true
+        }
+        if (state.lastSearchWasLocation) setLastSearchWasLocation(true)
+      }
+    } catch (e) { /* ignore */ }
+  }, [])
 
   useEffect(() => {
     if (justSelectedRef.current || searchedRef.current) {
@@ -69,23 +84,29 @@ export default function SearchPage() {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
-  const [lastSearchWasLocation, setLastSearchWasLocation] = useState(false)
-
   const search = async (q: string, lat?: number, lng?: number) => {
     searchedRef.current = true
     setSuggestions([])
     setShowSuggestions(false)
     inputRef.current?.blur()
     setLoading(true)
-    setLastSearchWasLocation(typeof lat === 'number' && typeof lng === 'number')
+    const isLocation = typeof lat === 'number' && typeof lng === 'number'
+    setLastSearchWasLocation(isLocation)
     try {
       let url = `/api/concerts?query=${encodeURIComponent(q)}`
-      if (typeof lat === 'number' && typeof lng === 'number') {
+      if (isLocation) {
         url += `&lat=${lat}&lng=${lng}`
       }
       const res = await fetch(url)
       const data = await res.json()
-      setResults(data.results || [])
+      const r = data.results || []
+      setResults(r)
+      // Persist so results survive navigation to external sites and back
+      try {
+        sessionStorage.setItem('search_state', JSON.stringify({
+          query: q, results: r, lastSearchWasLocation: isLocation,
+        }))
+      } catch (e) { /* ignore */ }
     } catch (e) { console.error(e) }
     setLoading(false)
   }
