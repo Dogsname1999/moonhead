@@ -5,6 +5,8 @@ export async function GET(request: NextRequest) {
   const artist = searchParams.get('artist') || ''
   const year = searchParams.get('year') || ''
   const mbid = searchParams.get('mbid') || ''
+  const stateCode = searchParams.get('state') || ''
+  const venueName = searchParams.get('venue') || ''
   const SLF_KEY = process.env.SETLISTFM_API_KEY
 
   try {
@@ -24,6 +26,8 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     let url = 'https://api.setlist.fm/rest/1.0/search/setlists?artistMbid=' + artistMbid + '&p=' + page
     if (year) url += '&year=' + year
+    if (stateCode) url += '&stateCode=' + encodeURIComponent(stateCode)
+    if (venueName) url += '&venueName=' + encodeURIComponent(venueName)
 
     const res = await fetch(url, {
       headers: { 'x-api-key': SLF_KEY || '', 'Accept': 'application/json' }

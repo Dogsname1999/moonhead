@@ -4,12 +4,31 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import NavBar from '@/components/NavBar'
 
-const YEARS = Array.from({ length: 60 }, (_, i) => (2025 - i).toString())
+const YEARS = Array.from({ length: 60 }, (_, i) => (2026 - i).toString())
+
+const US_STATES = [
+  'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD',
+  'MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC',
+  'SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'
+]
+
+const STATE_NAMES: Record<string, string> = {
+  AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CA:'California',CO:'Colorado',CT:'Connecticut',
+  DE:'Delaware',FL:'Florida',GA:'Georgia',HI:'Hawaii',ID:'Idaho',IL:'Illinois',IN:'Indiana',IA:'Iowa',
+  KS:'Kansas',KY:'Kentucky',LA:'Louisiana',ME:'Maine',MD:'Maryland',MA:'Massachusetts',MI:'Michigan',
+  MN:'Minnesota',MS:'Mississippi',MO:'Missouri',MT:'Montana',NE:'Nebraska',NV:'Nevada',NH:'New Hampshire',
+  NJ:'New Jersey',NM:'New Mexico',NY:'New York',NC:'North Carolina',ND:'North Dakota',OH:'Ohio',
+  OK:'Oklahoma',OR:'Oregon',PA:'Pennsylvania',RI:'Rhode Island',SC:'South Carolina',SD:'South Dakota',
+  TN:'Tennessee',TX:'Texas',UT:'Utah',VT:'Vermont',VA:'Virginia',WA:'Washington',WV:'West Virginia',
+  WI:'Wisconsin',WY:'Wyoming',DC:'Washington DC'
+}
 
 function PastShowContent() {
   const router = useRouter()
   const [artist, setArtist] = useState('')
   const [year, setYear] = useState('')
+  const [stateCode, setStateCode] = useState('')
+  const [venue, setVenue] = useState('')
   const [results, setResults] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState('')
@@ -103,6 +122,8 @@ function PastShowContent() {
     try {
       let url = `/api/pastshows?artist=${encodeURIComponent(artist)}&page=${pageNum}`
       if (year) url += `&year=${year}`
+      if (stateCode) url += `&state=${stateCode}`
+      if (venue.trim()) url += `&venue=${encodeURIComponent(venue.trim())}`
       if (pageNum > 1 && mbid) url += `&mbid=${mbid}`
       const res = await fetch(url)
       const data = await res.json()
@@ -191,6 +212,17 @@ function PastShowContent() {
           <option value="">All years</option>
           {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
         </select>
+
+        <select value={stateCode} onChange={(e) => setStateCode(e.target.value)}
+          style={{ display: 'block', width: '100%', boxSizing: 'border-box', backgroundColor: '#EDE8DF', color: '#2C4A6E', border: '1.5px solid #8BA5C0', borderRadius: '12px', padding: '16px 20px', fontSize: '16px', outline: 'none', marginBottom: '12px' }}>
+          <option value="">All states</option>
+          {US_STATES.map(s => <option key={s} value={s}>{STATE_NAMES[s]} ({s})</option>)}
+        </select>
+
+        <input type="text" value={venue} onChange={(e) => setVenue(e.target.value)}
+          placeholder="Venue name (optional)"
+          onKeyDown={(e) => { if (e.key === 'Enter') { setPage(1); search(1) } }}
+          style={{ display: 'block', width: '100%', boxSizing: 'border-box', backgroundColor: '#EDE8DF', color: '#2C4A6E', border: '1.5px solid #8BA5C0', borderRadius: '12px', padding: '16px 20px', fontSize: '16px', outline: 'none', marginBottom: '12px' }} />
 
         <button onClick={() => { setPage(1); search(1) }} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '16px', borderRadius: '999px', fontWeight: 600, fontSize: '16px', backgroundColor: '#2C4A6E', color: '#F5F0E8', border: 'none', cursor: 'pointer', marginBottom: '32px' }}>
           {loading ? 'Searching…' : 'Find Shows'}
@@ -308,7 +340,7 @@ function PastShowContent() {
         )}
 
         {!loading && results.length === 0 && artist && (
-          <p style={{ color: '#8BA5C0', textAlign: 'center', marginTop: '32px' }}>No shows found. Try a different artist or year.</p>
+          <p style={{ color: '#8BA5C0', textAlign: 'center', marginTop: '32px' }}>No shows found. Try adjusting your filters — different year, state, or venue.</p>
         )}
       </div>
     </div>
