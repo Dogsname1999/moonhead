@@ -14,6 +14,7 @@ export default function PublicProfilePage() {
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [tab, setTab] = useState<'shows' | 'dreams'>('shows')
+  const [groupBy, setGroupBy] = useState<'date' | 'artist' | 'year'>('date')
 
   useEffect(() => {
     const load = async () => {
@@ -141,6 +142,24 @@ export default function PublicProfilePage() {
           )}
         </div>
 
+        {/* Group by controls */}
+        {activeShows.length > 0 && (
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', alignItems: 'center' }}>
+            <span style={{ fontSize: '12px', fontWeight: 600, color: '#8BA5C0', letterSpacing: '0.08em', textTransform: 'uppercase', marginRight: '4px' }}>Group by</span>
+            {(['date', 'artist', 'year'] as const).map(opt => (
+              <button key={opt} onClick={() => setGroupBy(opt)}
+                style={{
+                  padding: '6px 14px', borderRadius: '999px', fontSize: '13px', fontWeight: groupBy === opt ? 600 : 400,
+                  border: `1.5px solid ${groupBy === opt ? '#2C4A6E' : '#8BA5C0'}`,
+                  backgroundColor: groupBy === opt ? '#2C4A6E' : 'transparent',
+                  color: groupBy === opt ? '#F5F0E8' : '#5C7A9E', cursor: 'pointer', transition: 'all 0.15s',
+                }}>
+                {opt === 'date' ? 'Date' : opt === 'artist' ? 'Artist' : 'Year'}
+              </button>
+            ))}
+          </div>
+        )}
+
         {/* Show list */}
         {activeShows.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '48px 0' }}>
@@ -148,35 +167,79 @@ export default function PublicProfilePage() {
               {tab === 'shows' ? 'No shows yet' : 'No dream shows yet'}
             </p>
           </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {activeShows.map((show) => (
-              <div key={show.id}
-                onClick={() => {
-                  if (show.concert_id) router.push(`/concert/${show.concert_id}`)
-                  else router.push(`/show/${show.id}`)
-                }}
-                style={{ backgroundColor: '#EDE8DF', borderRadius: '16px', border: '1px solid #8BA5C0', padding: '20px', cursor: 'pointer' }}
-                onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#e8e3da' }}
-                onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#EDE8DF' }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                      {tab === 'dreams' && <span style={{ fontSize: '14px' }}>✨</span>}
-                      <h3 style={{ fontWeight: 700, fontSize: '18px', color: '#2C4A6E', margin: 0 }}>{show.artist}</h3>
-                    </div>
-                    <p style={{ fontSize: '14px', color: '#5C7A9E', margin: '0 0 8px' }}>
-                      {show.venue}{show.city ? ` · ${show.city}` : ''}
+        ) : (() => {
+          // Build groups
+          const groups: { label: string; shows: any[] }[] = []
+          if (groupBy === 'date') {
+            groups.push({ label: '', shows: activeShows })
+          } else if (groupBy === 'year') {
+            const yearMap: Record<string, any[]> = {}
+            activeShows.forEach(s => {
+              const y = s.date ? new Date(s.date).getFullYear().toString() : 'Unknown'
+              if (!yearMap[y]) yearMap[y] = []
+              yearMap[y].push(s)
+            })
+            Object.keys(yearMap).sort((a, b) => b.localeCompare(a)).forEach(y => {
+              groups.push({ label: y, shows: yearMap[y] })
+            })
+          } else {
+            const artistMap: Record<string, any[]> = {}
+            activeShows.forEach(s => {
+              const a = s.artist || 'Unknown'
+              if (!artistMap[a]) artistMap[a] = []
+              artistMap[a].push(s)
+            })
+            Object.keys(artistMap).sort((a, b) => a.localeCompare(b)).forEach(a => {
+              groups.push({ label: `${a} (${artistMap[a].length})`, shows: artistMap[a] })
+            })
+          }
+
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: groupBy === 'date' ? '12px' : '24px' }}>
+              {groups.map((group, gi) => (
+                <div key={gi}>
+                  {group.label && (
+                    <p style={{ fontSize: '14px', fontWeight: 700, color: '#2C4A6E', margin: '0 0 12px', paddingBottom: '8px', borderBottom: '2px solid #8BA5C0' }}>
+                      {group.label}
                     </p>
-                    <p style={{ fontSize: '14px', fontWeight: 500, color: '#2C4A6E', margin: 0 }}>{formatDate(show.date)}</p>
+                  )}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {group.shows.map((show) => (
+                      <div key={show.id}
+                        onClick={() => {
+                          if (show.concert_id) router.push(`/concert/${show.concert_id}`)
+                          else router.push(`/show/${show.id}`)
+                        }}
+                        style={{ backgroundColor: '#EDE8DF', borderRadius: '16px', border: '1px solid #8BA5C0', padding: '20px', cursor: 'pointer' }}
+                        onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#e8e3da' }}
+                        onMouseLeave={e => { e.currentTarget.style.backgroundColor = '#EDE8DF' }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                              {tab === 'dreams' && <span style={{ fontSize: '14px' }}>✨</span>}
+                              <h3 style={{ fontWeight: 700, fontSize: groupBy === 'artist' ? '16px' : '18px', color: '#2C4A6E', margin: 0 }}>
+                                {groupBy === 'artist' ? show.venue || show.artist : show.artist}
+                              </h3>
+                            </div>
+                            <p style={{ fontSize: '14px', color: '#5C7A9E', margin: '0 0 8px' }}>
+                              {groupBy === 'artist'
+                                ? (show.city || '')
+                                : `${show.venue || ''}${show.city ? ` · ${show.city}` : ''}`
+                              }
+                            </p>
+                            <p style={{ fontSize: '14px', fontWeight: 500, color: '#2C4A6E', margin: 0 }}>{formatDate(show.date)}</p>
+                          </div>
+                          <span style={{ color: '#8BA5C0', fontSize: '18px', marginTop: '4px' }}>→</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <span style={{ color: '#8BA5C0', fontSize: '18px', marginTop: '4px' }}>→</span>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          )
+        })()}
 
         {/* Year breakdown */}
         {shows.length > 0 && tab === 'shows' && years.length > 1 && (
