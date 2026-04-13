@@ -1,8 +1,31 @@
 'use client'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+
+const taglines = [
+  'The ticket stub. Evolved.',
+  'Keep track of your shows.',
+  'Look up your set lists.',
+  'Listen to live recordings.',
+  'Support local music.',
+]
 
 export default function Home() {
   const router = useRouter()
+  const [taglineIndex, setTaglineIndex] = useState(0)
+  const [fade, setFade] = useState(true)
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFade(false)
+      setTimeout(() => {
+        setTaglineIndex((prev) => (prev + 1) % taglines.length)
+        setFade(true)
+      }, 400)
+    }, 3500)
+    return () => clearInterval(interval)
+  }, [])
+
   return (
     <main style={{ minHeight: '100vh', backgroundColor: '#F5F0E8', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '0 32px' }}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', maxWidth: '320px' }}>
@@ -15,8 +38,13 @@ export default function Home() {
           style={{ width: '200px', height: '200px', objectFit: 'contain', marginBottom: '32px' }}
         />
 
-        <p style={{ color: '#5C7A9E', fontSize: '16px', letterSpacing: '0.03em', marginBottom: '40px', textAlign: 'center' }}>
-          The ticket stub. Evolved.
+        <p style={{
+          color: '#5C7A9E', fontSize: '16px', letterSpacing: '0.03em', marginBottom: '40px', textAlign: 'center',
+          minHeight: '24px',
+          opacity: fade ? 1 : 0,
+          transition: 'opacity 0.4s ease-in-out',
+        }}>
+          {taglines[taglineIndex]}
         </p>
 
         <button
