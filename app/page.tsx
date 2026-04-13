@@ -83,13 +83,6 @@ export default function Home() {
         </button>
 
         <button
-          onClick={() => router.push('/dreamshow')}
-          style={{ width: '100%', padding: '16px 32px', borderRadius: '999px', fontSize: '18px', fontWeight: 700, backgroundColor: 'transparent', color: '#2C4A6E', border: '2px solid #2C4A6E', cursor: 'pointer', marginBottom: '14px', letterSpacing: '0.01em' }}
-        >
-          Wish I Was There
-        </button>
-
-        <button
           onClick={() => router.push('/profile')}
           style={{ width: '100%', padding: '16px 32px', borderRadius: '999px', fontSize: '18px', fontWeight: 700, backgroundColor: 'transparent', color: '#5C7A9E', border: '2px solid #5C7A9E', cursor: 'pointer', marginBottom: '28px', letterSpacing: '0.01em' }}
         >
