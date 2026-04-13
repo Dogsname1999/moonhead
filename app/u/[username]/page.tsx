@@ -21,7 +21,7 @@ export default function PublicProfilePage() {
       // Look up the profile by username
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('id, username')
+        .select('id, username, avatar_url')
         .eq('username', username)
         .single()
 
@@ -104,9 +104,13 @@ export default function PublicProfilePage() {
 
         {/* Profile header */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: '#2C4A6E', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '32px', color: '#F5F0E8', fontWeight: 700 }}>
-            {(profile.username || '?')[0].toUpperCase()}
-          </div>
+          {profile.avatar_url ? (
+            <img src={profile.avatar_url} alt={profile.username} style={{ width: '80px', height: '80px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #8BA5C0', margin: '0 auto 16px', display: 'block' }} />
+          ) : (
+            <div style={{ width: '80px', height: '80px', borderRadius: '50%', backgroundColor: '#2C4A6E', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '32px', color: '#F5F0E8', fontWeight: 700 }}>
+              {(profile.username || '?')[0].toUpperCase()}
+            </div>
+          )}
           <h2 style={{ fontSize: '28px', fontWeight: 700, color: '#2C4A6E', margin: '0 0 4px' }}>{profile.username}</h2>
           <p style={{ color: '#8BA5C0', fontSize: '13px', margin: 0 }}>tourbustix.com/u/{profile.username}</p>
         </div>

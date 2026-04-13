@@ -12,6 +12,8 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
   const [username, setUsername] = useState<string | null>(null)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [copied, setCopied] = useState(false)
   const [groupBy, setGroupBy] = useState<'none' | 'artist' | 'year'>('none')
 
@@ -32,9 +34,10 @@ export default function ProfilePage() {
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
       if (user) {
-        // Fetch username for share link
-        const { data: profileData } = await supabase.from('profiles').select('username').eq('id', user.id).single()
+        // Fetch username and avatar for share link / display
+        const { data: profileData } = await supabase.from('profiles').select('username, avatar_url').eq('id', user.id).single()
         if (profileData?.username) setUsername(profileData.username)
+        if (profileData?.avatar_url) setAvatarUrl(profileData.avatar_url)
         const { data } = await supabase.from("checkins").select("*").eq("user_id", user.id).or("is_dream.eq.false,is_dream.is.null").order("created_at", { ascending: false })
         setCheckins(data || [])
         const { data: dreamData } = await supabase.from("checkins").select("*").eq("user_id", user.id).eq("is_dream", true).order("created_at", { ascending: false })
@@ -109,6 +112,48 @@ export default function ProfilePage() {
   }
   const handleSignOut = async () => { await supabase.auth.signOut(); router.push("/") }
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !user) return
+    setUploadingAvatar(true)
+    try {
+      // Resize image client-side
+      const resized = await new Promise<Blob>((resolve) => {
+        const img = new Image()
+        img.onload = () => {
+          const canvas = document.createElement('canvas')
+          const size = 256
+          canvas.width = size
+          canvas.height = size
+          const ctx = canvas.getContext('2d')!
+          // Crop to square from center
+          const min = Math.min(img.width, img.height)
+          const sx = (img.width - min) / 2
+          const sy = (img.height - min) / 2
+          ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size)
+          canvas.toBlob((b) => resolve(b!), 'image/jpeg', 0.85)
+        }
+        img.src = URL.createObjectURL(file)
+      })
+
+      const fileName = `${user.id}.jpg`
+      // Upload (upsert)
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, resized, {
+        contentType: 'image/jpeg', upsert: true
+      })
+      if (uploadError) { console.error('Upload error:', uploadError); setUploadingAvatar(false); return }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName)
+      const publicUrl = urlData.publicUrl + '?t=' + Date.now() // cache bust
+
+      // Save to profile
+      await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id)
+      setAvatarUrl(publicUrl)
+    } catch (err) { console.error('Avatar upload failed:', err) }
+    setUploadingAvatar(false)
+  }
+
   const removeShow = async (id: string) => {
     setDeleting(id)
     try {
@@ -138,9 +183,25 @@ export default function ProfilePage() {
       <NavBar backLabel="Home" backPath="/" />
       <div style={{ maxWidth: '560px', margin: '0 auto', padding: '36px 24px 64px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '36px' }}>
-          <div>
-            <h2 style={{ fontSize: '28px', fontWeight: 700, letterSpacing: '0.1em', color: '#2C4A6E', marginBottom: '4px', marginTop: 0 }}>MY SHOWS</h2>
-            <p style={{ color: '#8BA5C0', fontSize: '14px', margin: 0 }}>{user?.email || 'Your concert history'}</p>
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+            {/* Avatar with upload */}
+            <label style={{ cursor: 'pointer', position: 'relative', flexShrink: 0 }}>
+              <input type="file" accept="image/*" onChange={handleAvatarUpload} style={{ display: 'none' }} />
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="Profile" style={{ width: '64px', height: '64px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #8BA5C0' }} />
+              ) : (
+                <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: '#2C4A6E', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', color: '#F5F0E8', fontWeight: 700, border: '2px solid #8BA5C0' }}>
+                  {(username || user?.email || '?')[0].toUpperCase()}
+                </div>
+              )}
+              <div style={{ position: 'absolute', bottom: '-2px', right: '-2px', width: '22px', height: '22px', borderRadius: '50%', backgroundColor: '#2C4A6E', border: '2px solid #F5F0E8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ color: '#F5F0E8', fontSize: '11px', lineHeight: 1 }}>{uploadingAvatar ? '...' : '+'}</span>
+              </div>
+            </label>
+            <div>
+              <h2 style={{ fontSize: '28px', fontWeight: 700, letterSpacing: '0.1em', color: '#2C4A6E', marginBottom: '4px', marginTop: 0 }}>MY SHOWS</h2>
+              <p style={{ color: '#8BA5C0', fontSize: '14px', margin: 0 }}>{username || user?.email || 'Your concert history'}</p>
+            </div>
           </div>
           {user && <button onClick={handleSignOut} style={{ background: 'none', border: 'none', color: '#8BA5C0', fontSize: '13px', cursor: 'pointer', padding: 0 }}>Sign out</button>}
         </div>

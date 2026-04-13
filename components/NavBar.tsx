@@ -7,6 +7,7 @@ export default function NavBar({ backLabel, backPath }: { backLabel?: string; ba
   const [open, setOpen] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [username, setUsername] = useState<string | null>(null)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -14,9 +15,10 @@ export default function NavBar({ backLabel, backPath }: { backLabel?: string; ba
       if (data.user) {
         setUser(data.user)
         // Fetch username from profiles
-        supabase.from('profiles').select('username').eq('id', data.user.id).single()
+        supabase.from('profiles').select('username, avatar_url').eq('id', data.user.id).single()
           .then(({ data: profile }) => {
             if (profile?.username) setUsername(profile.username)
+            if (profile?.avatar_url) setAvatarUrl(profile.avatar_url)
           })
       }
     })
@@ -74,7 +76,7 @@ export default function NavBar({ backLabel, backPath }: { backLabel?: string; ba
         <button onClick={() => setOpen(false)} style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', fontSize: '24px', color: '#8BA5C0', cursor: 'pointer' }}>✕</button>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '40px' }}>
           <img src="/ticket.png" alt="Moonhead" style={{ width: '36px', height: '36px', objectFit: 'contain' }} />
-          <p style={{ fontSize: '18px', fontWeight: 700, letterSpacing: '0.1em', color: '#2C4A6E', margin: 0 }}>MOONHEAD</p>
+          <p style={{ fontSize: '18px', fontWeight: 700, letterSpacing: '0.1em', color: '#2C4A6E', margin: 0 }}>TOURBUSTIX</p>
         </div>
         <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           {links.map(link => (
@@ -87,14 +89,23 @@ export default function NavBar({ backLabel, backPath }: { backLabel?: string; ba
           {/* Auth section */}
           {user ? (
             <>
-              <div style={{ padding: '20px 0 8px', borderBottom: '1px solid #EDE8DF' }}>
-                <p style={{ fontSize: '14px', fontWeight: 700, color: '#2C4A6E', margin: '0 0 4px' }}>
-                  {username || user.email}
-                </p>
-                <button onClick={handleSignOut}
-                  style={{ background: 'none', border: 'none', padding: 0, fontSize: '14px', color: '#5C7A9E', cursor: 'pointer', textDecoration: 'underline' }}>
-                  Log Out
-                </button>
+              <div style={{ padding: '20px 0 8px', borderBottom: '1px solid #EDE8DF', display: 'flex', gap: '12px', alignItems: 'center' }}>
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="" style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover', border: '1.5px solid #8BA5C0', flexShrink: 0 }} />
+                ) : (
+                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', backgroundColor: '#2C4A6E', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px', color: '#F5F0E8', fontWeight: 700, flexShrink: 0 }}>
+                    {(username || user.email || '?')[0].toUpperCase()}
+                  </div>
+                )}
+                <div>
+                  <p style={{ fontSize: '14px', fontWeight: 700, color: '#2C4A6E', margin: '0 0 4px' }}>
+                    {username || user.email}
+                  </p>
+                  <button onClick={handleSignOut}
+                    style={{ background: 'none', border: 'none', padding: 0, fontSize: '14px', color: '#5C7A9E', cursor: 'pointer', textDecoration: 'underline' }}>
+                    Log Out
+                  </button>
+                </div>
               </div>
             </>
           ) : (
