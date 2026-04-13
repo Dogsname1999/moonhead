@@ -1,5 +1,5 @@
 'use client'
-import { useState, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import NavBar from '@/components/NavBar'
@@ -12,12 +12,28 @@ function CheckInContent() {
   const [note, setNote] = useState('')
   const [loading, setLoading] = useState(false)
   const [checkinId, setCheckinId] = useState<string | null>(null)
+  const [user, setUser] = useState<any>(null)
+  const [authChecked, setAuthChecked] = useState(false)
 
   const artist = searchParams.get('artist') || 'Unknown Artist'
   const venue = searchParams.get('venue') || 'Unknown Venue'
   const city = searchParams.get('city') || ''
   const date = searchParams.get('date') || ''
   const concertId = searchParams.get('id') || ''
+
+  // Check auth on mount — redirect to login if not signed in,
+  // preserving the full checkin URL so they come back here after auth
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        setUser(data.user)
+      } else {
+        const currentUrl = `/checkin?id=${encodeURIComponent(concertId)}&artist=${encodeURIComponent(artist)}&venue=${encodeURIComponent(venue)}&city=${encodeURIComponent(city)}&date=${encodeURIComponent(date)}`
+        router.replace(`/auth?redirect=${encodeURIComponent(currentUrl)}`)
+      }
+      setAuthChecked(true)
+    })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const formatDate = (d: string) => {
     if (!d) return 'Tonight'
@@ -27,7 +43,6 @@ function CheckInContent() {
   const handleCheckIn = async () => {
     setLoading(true)
     try {
-      const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         const { data } = await supabase.from('checkins').insert({ user_id: user.id, artist, venue, city, date, note, concert_id: concertId }).select().single()
         if (data) setCheckinId(data.id)
@@ -35,6 +50,15 @@ function CheckInContent() {
     } catch (e) { console.error(e) }
     setChecked(true)
     setLoading(false)
+  }
+
+  // Show loading while checking auth
+  if (!authChecked) {
+    return (
+      <div style={{ minHeight: '100vh', backgroundColor: '#F5F0E8', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <p style={{ color: '#8BA5C0' }}>Loading...</p>
+      </div>
+    )
   }
 
   const secondaryBtn: React.CSSProperties = { width: '100%', padding: '16px', borderRadius: '999px', fontWeight: 600, fontSize: '16px', border: '1.5px solid #8BA5C0', color: '#5C7A9E', background: 'transparent', cursor: 'pointer', marginBottom: '12px' }

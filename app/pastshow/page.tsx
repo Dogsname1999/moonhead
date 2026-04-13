@@ -132,7 +132,7 @@ function PastShowContent() {
     setSaving(show.id)
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/auth'); return }
+      if (!user) { router.push('/auth?redirect=/pastshow'); return }
       const dp = show.date ? show.date.split('-') : []
       const dateFormatted = dp.length === 3 ? dp[2] + '-' + dp[1] + '-' + dp[0] : show.date || ''
       const { data: checkin } = await supabase.from('checkins').insert({
