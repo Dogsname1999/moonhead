@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { supabase } from '@/lib/supabase'
 
 const taglines = [
   'The ticket stub. Evolved.',
@@ -14,6 +15,26 @@ export default function Home() {
   const router = useRouter()
   const [taglineIndex, setTaglineIndex] = useState(0)
   const [fade, setFade] = useState(true)
+  const [user, setUser] = useState<any>(null)
+  const [username, setUsername] = useState<string | null>(null)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) {
+        setUser(data.user)
+        supabase.from('profiles').select('username').eq('id', data.user.id).single()
+          .then(({ data: profile }) => {
+            if (profile?.username) setUsername(profile.username)
+          })
+      }
+    })
+  }, [])
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    setUser(null)
+    setUsername(null)
+  }
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -75,12 +96,26 @@ export default function Home() {
           My Shows
         </button>
 
-        <button
-          onClick={() => router.push('/auth')}
-          style={{ background: 'none', border: 'none', padding: '8px 0', fontSize: '15px', color: '#8BA5C0', cursor: 'pointer' }}
-        >
-          Sign in / Create account
-        </button>
+        {user ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+            <p style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#2C4A6E' }}>
+              {username || user.email}
+            </p>
+            <button
+              onClick={handleSignOut}
+              style={{ background: 'none', border: 'none', padding: '4px 0', fontSize: '14px', color: '#5C7A9E', cursor: 'pointer', textDecoration: 'underline' }}
+            >
+              Log Out
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => router.push('/auth')}
+            style={{ background: 'none', border: 'none', padding: '8px 0', fontSize: '15px', color: '#8BA5C0', cursor: 'pointer' }}
+          >
+            Sign in / Create account
+          </button>
+        )}
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '40px', paddingTop: '20px', borderTop: '1px solid #EDE8DF', gap: '12px' }}>
           <a href="https://shoptourbus.com" target="_blank" rel="noopener noreferrer" style={{ fontSize: '12px', color: '#8BA5C0', textDecoration: 'none' }}>Brought to you by <span style={{ fontWeight: 600, color: '#5C7A9E' }}>Tourbus</span></a>
