@@ -260,17 +260,17 @@ export default function SearchPage() {
                 </button>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   {concert.url ? (
-                    <a href={concert.url} target="_blank" rel="noopener noreferrer"
+                    <a href={`/go?url=${encodeURIComponent(concert.url)}&label=${encodeURIComponent('Ticketmaster')}`}
                       style={{ flex: 1, display: 'block', padding: '10px', borderRadius: '999px', fontSize: '13px', fontWeight: 600, textAlign: 'center', textDecoration: 'none', backgroundColor: '#2C4A6E', color: '#F5F0E8' }}>
                       🎟 Buy Tickets
                     </a>
                   ) : (
-                    <a href={`https://www.ticketmaster.com/search?q=${encodeURIComponent(concert.artist)}`} target="_blank" rel="noopener noreferrer"
+                    <a href={`/go?url=${encodeURIComponent(`https://www.ticketmaster.com/search?q=${encodeURIComponent(concert.artist)}`)}&label=${encodeURIComponent('Ticketmaster')}`}
                       style={{ flex: 1, display: 'block', padding: '10px', borderRadius: '999px', fontSize: '13px', fontWeight: 600, textAlign: 'center', textDecoration: 'none', backgroundColor: '#2C4A6E', color: '#F5F0E8' }}>
                       🎟 Ticketmaster
                     </a>
                   )}
-                  <a href={`https://www.stubhub.com/${encodeURIComponent(concert.artist.toLowerCase().replace(/\s+/g, '-'))}-tickets`} target="_blank" rel="noopener noreferrer"
+                  <a href={`/go?url=${encodeURIComponent(`https://www.stubhub.com/${concert.artist.toLowerCase().replace(/\s+/g, '-')}-tickets`)}&label=${encodeURIComponent('StubHub')}`}
                     style={{ flex: 1, display: 'block', padding: '10px', borderRadius: '999px', fontSize: '13px', fontWeight: 600, textAlign: 'center', textDecoration: 'none', border: '1.5px solid #5C7A9E', color: '#5C7A9E', backgroundColor: 'transparent' }}>
                     🎫 StubHub
                   </a>

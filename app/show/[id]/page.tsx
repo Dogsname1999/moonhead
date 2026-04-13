@@ -121,7 +121,7 @@ export default function ShowPage() {
           )
         })()}
         {archiveUrl && (
-          <a href={archiveUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '18px', borderRadius: '999px', textAlign: 'center', fontWeight: 600, fontSize: '16px', border: '1.5px solid #8BA5C0', color: '#5C7A9E', textDecoration: 'none', marginBottom: '16px' }}>
+          <a href={`/go?url=${encodeURIComponent(archiveUrl)}&label=${encodeURIComponent('Archive.org')}`} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '18px', borderRadius: '999px', textAlign: 'center', fontWeight: 600, fontSize: '16px', border: '1.5px solid #8BA5C0', color: '#5C7A9E', textDecoration: 'none', marginBottom: '16px' }}>
             🎙 Listen on Archive.org
           </a>
         )}
@@ -152,7 +152,7 @@ export default function ShowPage() {
             <p style={{ fontSize: '11px', fontWeight: 600, letterSpacing: '0.15em', textTransform: 'uppercase', color: '#8BA5C0', marginBottom: '12px', marginTop: 0 }}>Find Collectibles on eBay</p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
               {ebaySearches.map((s: any, i: number) => (
-                <a key={i} href={s.url} target="_blank" rel="noopener noreferrer"
+                <a key={i} href={`/go?url=${encodeURIComponent(s.url)}&label=${encodeURIComponent('eBay')}`}
                   style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#EDE8DF', borderRadius: '12px', padding: '14px 16px', border: '1px solid #8BA5C0', textDecoration: 'none', fontSize: '13px', fontWeight: 600, color: '#2C4A6E' }}>
                   <span style={{ fontSize: '18px' }}>{s.emoji}</span>
                   {s.label}

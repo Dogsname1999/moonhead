@@ -168,7 +168,7 @@ export default function ConcertPage() {
 
         {/* Archive.org */}
         {archiveUrl && (
-          <a href={archiveUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '18px', borderRadius: '999px', textAlign: 'center', fontWeight: 600, fontSize: '16px', border: '1.5px solid #8BA5C0', color: '#5C7A9E', textDecoration: 'none', marginBottom: '16px' }}>
+          <a href={`/go?url=${encodeURIComponent(archiveUrl)}&label=${encodeURIComponent('Archive.org')}`} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '18px', borderRadius: '999px', textAlign: 'center', fontWeight: 600, fontSize: '16px', border: '1.5px solid #8BA5C0', color: '#5C7A9E', textDecoration: 'none', marginBottom: '16px' }}>
             🎙 Listen on Archive.org
           </a>
         )}
