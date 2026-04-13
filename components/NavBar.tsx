@@ -34,7 +34,7 @@ export default function NavBar({ backLabel, backPath }: { backLabel?: string; ba
 
   const links = [
     { label: '🔍 Find Shows', path: '/search' },
-    { label: '🌕 I Was There', path: '/pastshow' },
+    { label: '🎫 I Was There / Scan Stub', path: '/pastshow' },
     { label: '🎵 My Shows', path: '/profile' },
     { label: '🏠 Home', path: '/' },
   ]

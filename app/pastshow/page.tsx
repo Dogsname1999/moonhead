@@ -1,6 +1,6 @@
 'use client'
 import { useState, Suspense, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import NavBar from '@/components/NavBar'
 
@@ -23,12 +23,86 @@ const STATE_NAMES: Record<string, string> = {
   WI:'Wisconsin',WY:'Wyoming',DC:'Washington DC'
 }
 
+// OCR helpers
+const MONTHS_MAP: Record<string, string> = {
+  jan:'01',january:'01',feb:'02',february:'02',mar:'03',march:'03',apr:'04',april:'04',
+  may:'05',jun:'06',june:'06',jul:'07',july:'07',aug:'08',august:'08',sep:'09',sept:'09',september:'09',
+  oct:'10',october:'10',nov:'11',november:'11',dec:'12',december:'12'
+}
+const VENUE_WORDS = ['theater','theatre','arena','center','centre','amphitheater','amphitheatre','pavilion','hall','garden','gardens','stadium','coliseum','ballroom','club','lounge','auditorium','house','room','field','park','grounds','shed','tavern']
+const NOISE_WORDS = new Set(['section','row','seat','gate','door','floor','level','admit','one','general','admission','ga','vip','balcony','pit','lawn','reserved','ticket','tickets','stub','price','total','tax','fee','service','charge','order','confirmation','barcode','no','refund','rain','shine','all','ages','pm','am','www','com','http','https','ticketmaster','livenation','eventbrite'])
+const STATE_SET = new Set(['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'])
+
+function parseStubText(text: string) {
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 1)
+  let foundYear = ''
+  let foundVenue = ''
+  let foundArtist = ''
+
+  // Date/year detection
+  for (const line of lines) {
+    const monthName = line.match(/\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{1,2})(?:\s*,?\s*|\s+)(\d{4})\b/i)
+    if (monthName) { foundYear = monthName[3]; break }
+    const slash = line.match(/\b\d{1,2}[\/\-]\d{1,2}[\/\-](\d{4})\b/)
+    if (slash) { foundYear = slash[1]; break }
+    const iso = line.match(/\b(\d{4})-\d{2}-\d{2}\b/)
+    if (iso) { foundYear = iso[1]; break }
+  }
+  if (!foundYear) {
+    for (const line of lines) {
+      const y = line.match(/\b(19[6-9]\d|20[0-3]\d)\b/)
+      if (y) { foundYear = y[1]; break }
+    }
+  }
+
+  // Filter candidate lines
+  const candidates = lines.filter(line => {
+    if (line.length < 3 || line.length > 80) return false
+    if (line.replace(/\d/g, '').trim().length < 3) return false
+    if (/\$\d/.test(line)) return false
+    if (/\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b/.test(line)) return false
+    const words = line.toLowerCase().split(/\s+/)
+    const noiseCount = words.filter(w => NOISE_WORDS.has(w.replace(/[^a-z]/g, ''))).length
+    if (noiseCount > words.length * 0.6) return false
+    return true
+  })
+
+  // Artist: prefer all-caps lines (headliner), else first candidate
+  const allCaps = candidates.filter(l => l === l.toUpperCase() && /[A-Z]/.test(l))
+  foundArtist = cleanOcrName(allCaps.length > 0 ? allCaps[0] : (candidates[0] || ''))
+
+  // Venue: look for venue indicator words or state abbreviations
+  for (const line of candidates) {
+    if (cleanOcrName(line) === foundArtist) continue
+    const lower = line.toLowerCase()
+    if (VENUE_WORDS.some(v => lower.includes(v))) { foundVenue = cleanOcrName(line); break }
+    if (line.split(/[\s,]+/).some(w => STATE_SET.has(w.toUpperCase()) && w.length === 2)) { foundVenue = cleanOcrName(line); break }
+  }
+
+  return { artist: foundArtist, venue: foundVenue, year: foundYear, rawText: text }
+}
+
+function cleanOcrName(s: string): string {
+  let c = s.replace(/\s+/g, ' ').trim()
+  if (c === c.toUpperCase() && c.length > 2) {
+    c = c.split(' ').map(w => w.length <= 2 ? w : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
+  }
+  return c
+}
+
 function PastShowContent() {
   const router = useRouter()
-  const [artist, setArtist] = useState('')
-  const [year, setYear] = useState('')
-  const [stateCode, setStateCode] = useState('')
-  const [venue, setVenue] = useState('')
+  const searchParams = useSearchParams()
+  const [artist, setArtist] = useState(searchParams.get('artist') || '')
+  const [year, setYear] = useState(searchParams.get('year') || '')
+  const [stateCode, setStateCode] = useState(searchParams.get('state') || '')
+  const [venue, setVenue] = useState(searchParams.get('venue') || '')
+  const [scanningStub, setScanningStub] = useState(false)
+  const [scanProgress, setScanProgress] = useState(0)
+  const [stubImageUrl, setStubImageUrl] = useState<string | null>(null)
+  const [scanError, setScanError] = useState('')
+  const [rawOcrText, setRawOcrText] = useState('')
+  const stubFileRef = useRef<HTMLInputElement>(null)
   const [results, setResults] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState('')
@@ -49,6 +123,8 @@ function PastShowContent() {
   const inputRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
+  const autoSearchedRef = useRef(false)
+
   useEffect(() => {
     const loadMyShows = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -57,6 +133,12 @@ function PastShowContent() {
       if (data) setMyDates(data.map((c: any) => c.artist + '|' + c.date))
     }
     loadMyShows()
+    // Auto-search if pre-filled from stub scan
+    if (searchParams.get('artist') && !autoSearchedRef.current) {
+      autoSearchedRef.current = true
+      searchedRef.current = true
+      setTimeout(() => search(1), 300)
+    }
   }, [])
 
   useEffect(() => {
@@ -91,6 +173,53 @@ function PastShowContent() {
     }
     lookup()
   }, [expandedShow])
+
+  // Load Tesseract.js via script tag (CDN)
+  const loadTesseract = (): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      if ((window as any).Tesseract) { resolve((window as any).Tesseract); return }
+      const script = document.createElement('script')
+      script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'
+      script.onload = () => resolve((window as any).Tesseract)
+      script.onerror = () => reject(new Error('Failed to load OCR library'))
+      document.head.appendChild(script)
+    })
+  }
+
+  const handleStubScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setScanError('')
+    setRawOcrText('')
+    setStubImageUrl(URL.createObjectURL(file))
+    setScanningStub(true)
+    setScanProgress(0)
+    try {
+      const Tesseract = await loadTesseract()
+      const result = await Tesseract.recognize(file, 'eng', {
+        logger: (m: any) => {
+          if (m.status === 'recognizing text') setScanProgress(Math.round((m.progress || 0) * 100))
+        }
+      })
+      const text = result.data.text
+      if (!text || text.trim().length < 5) {
+        setScanError('Could not read text from the image. Try a clearer photo with good lighting.')
+        setScanningStub(false)
+        return
+      }
+      const parsed = parseStubText(text)
+      setRawOcrText(parsed.rawText)
+      if (parsed.artist) setArtist(parsed.artist)
+      if (parsed.venue) setVenue(parsed.venue)
+      if (parsed.year) setYear(parsed.year)
+    } catch (err) {
+      console.error('OCR error:', err)
+      setScanError('Failed to scan the image. Please try again.')
+    }
+    setScanningStub(false)
+    // Reset file input so same file can be re-selected
+    if (stubFileRef.current) stubFileRef.current.value = ''
+  }
 
   const selectArtist = (name: string) => {
     justSelectedRef.current = true
@@ -183,7 +312,70 @@ function PastShowContent() {
       <div style={{ maxWidth: '480px', margin: '0 auto', padding: '36px 24px 64px' }}>
 
         <h2 style={{ fontSize: '28px', fontWeight: 700, letterSpacing: '0.1em', color: '#2C4A6E', marginBottom: '8px', marginTop: 0 }}>I WAS THERE</h2>
-        <p style={{ color: '#5C7A9E', fontSize: '14px', marginBottom: '32px', marginTop: 0 }}>Log shows from your past</p>
+        <p style={{ color: '#5C7A9E', fontSize: '14px', marginBottom: '24px', marginTop: 0 }}>Log shows from your past</p>
+
+        {/* Scan a Stub section */}
+        <div style={{ marginBottom: '24px' }}>
+          <input ref={stubFileRef} type="file" accept="image/*" capture="environment" onChange={handleStubScan} style={{ display: 'none' }} />
+
+          {!stubImageUrl && !scanningStub && (
+            <button onClick={() => stubFileRef.current?.click()}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', width: '100%', boxSizing: 'border-box', padding: '16px', borderRadius: '16px', border: '2px dashed #8BA5C0', backgroundColor: '#EDE8DF', cursor: 'pointer', marginBottom: '16px' }}>
+              <span style={{ fontSize: '24px' }}>🎫</span>
+              <span style={{ fontSize: '15px', fontWeight: 600, color: '#2C4A6E' }}>Scan a Ticket Stub</span>
+            </button>
+          )}
+
+          {stubImageUrl && (
+            <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', border: '1px solid #8BA5C0', marginBottom: '12px' }}>
+              <img src={stubImageUrl} alt="Ticket stub" style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', display: 'block' }} />
+              {scanningStub && (
+                <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(44,74,110,0.75)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                  <div style={{ width: '60%', height: '6px', borderRadius: '3px', backgroundColor: 'rgba(245,240,232,0.3)', overflow: 'hidden' }}>
+                    <div style={{ width: `${scanProgress}%`, height: '100%', backgroundColor: '#F5F0E8', borderRadius: '3px', transition: 'width 0.3s' }} />
+                  </div>
+                  <p style={{ color: '#F5F0E8', fontSize: '14px', fontWeight: 600, margin: 0 }}>
+                    Scanning... {scanProgress}%
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {stubImageUrl && !scanningStub && (
+            <div style={{ display: 'flex', gap: '12px', marginBottom: '12px' }}>
+              <button onClick={() => stubFileRef.current?.click()}
+                style={{ background: 'none', border: 'none', color: '#5C7A9E', fontSize: '13px', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
+                Try different photo
+              </button>
+              <button onClick={() => { setStubImageUrl(null); setRawOcrText('') }}
+                style={{ background: 'none', border: 'none', color: '#8BA5C0', fontSize: '13px', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
+                Clear
+              </button>
+            </div>
+          )}
+
+          {scanError && (
+            <p style={{ color: '#c0392b', fontSize: '13px', margin: '0 0 12px' }}>{scanError}</p>
+          )}
+
+          {rawOcrText && !scanningStub && (
+            <details style={{ marginBottom: '12px' }}>
+              <summary style={{ fontSize: '12px', color: '#8BA5C0', cursor: 'pointer' }}>View scanned text</summary>
+              <pre style={{ fontSize: '11px', color: '#5C7A9E', backgroundColor: '#EDE8DF', padding: '10px', borderRadius: '8px', marginTop: '6px', whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: '150px', overflow: 'auto' }}>
+                {rawOcrText}
+              </pre>
+            </details>
+          )}
+
+          {!stubImageUrl && !scanningStub && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+              <div style={{ flex: 1, height: '1px', backgroundColor: '#8BA5C0' }} />
+              <span style={{ fontSize: '12px', color: '#8BA5C0', fontWeight: 600 }}>OR SEARCH</span>
+              <div style={{ flex: 1, height: '1px', backgroundColor: '#8BA5C0' }} />
+            </div>
+          )}
+        </div>
 
         <div style={{ position: 'relative', marginBottom: '12px' }}>
           <input ref={inputRef} type="text" value={artist}
