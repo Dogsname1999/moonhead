@@ -10,10 +10,8 @@ export default function PublicProfilePage() {
   const username = (params.username as string) || ''
   const [profile, setProfile] = useState<any>(null)
   const [shows, setShows] = useState<any[]>([])
-  const [dreams, setDreams] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
-  const [tab, setTab] = useState<'shows' | 'dreams'>('shows')
   const [groupBy, setGroupBy] = useState<'date' | 'artist' | 'year'>('date')
 
   useEffect(() => {
@@ -42,16 +40,6 @@ export default function PublicProfilePage() {
         .order('date', { ascending: false })
 
       setShows(showData || [])
-
-      // Fetch dream shows
-      const { data: dreamData } = await supabase
-        .from('checkins')
-        .select('*')
-        .eq('user_id', profileData.id)
-        .eq('is_dream', true)
-        .order('date', { ascending: false })
-
-      setDreams(dreamData || [])
       setLoading(false)
     }
     load()
@@ -95,8 +83,6 @@ export default function PublicProfilePage() {
     )
   }
 
-  const activeShows = tab === 'shows' ? shows : dreams
-
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#F5F0E8' }}>
       <NavBar backLabel="Home" backPath="/" />
@@ -129,25 +115,8 @@ export default function PublicProfilePage() {
           ))}
         </div>
 
-        {/* Tab switcher */}
-        <div style={{ display: 'flex', gap: '0', marginBottom: '24px', borderRadius: '999px', overflow: 'hidden', border: '1.5px solid #8BA5C0' }}>
-          <button onClick={() => setTab('shows')}
-            style={{ flex: 1, padding: '12px', fontSize: '14px', fontWeight: 600, border: 'none', cursor: 'pointer',
-              backgroundColor: tab === 'shows' ? '#2C4A6E' : 'transparent', color: tab === 'shows' ? '#F5F0E8' : '#5C7A9E' }}>
-            Shows ({shows.length})
-          </button>
-          {dreams.length > 0 && (
-            <button onClick={() => setTab('dreams')}
-              style={{ flex: 1, padding: '12px', fontSize: '14px', fontWeight: 600, border: 'none', cursor: 'pointer',
-                backgroundColor: tab === 'dreams' ? '#2C4A6E' : 'transparent', color: tab === 'dreams' ? '#F5F0E8' : '#5C7A9E',
-                borderLeft: '1.5px solid #8BA5C0' }}>
-              Dream Shows ({dreams.length})
-            </button>
-          )}
-        </div>
-
         {/* Group by controls */}
-        {activeShows.length > 0 && (
+        {shows.length > 0 && (
           <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', alignItems: 'center' }}>
             <span style={{ fontSize: '12px', fontWeight: 600, color: '#8BA5C0', letterSpacing: '0.08em', textTransform: 'uppercase', marginRight: '4px' }}>Group by</span>
             {(['date', 'artist', 'year'] as const).map(opt => (
@@ -165,20 +134,20 @@ export default function PublicProfilePage() {
         )}
 
         {/* Show list */}
-        {activeShows.length === 0 ? (
+        {shows.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '48px 0' }}>
             <p style={{ color: '#8BA5C0', fontSize: '16px' }}>
-              {tab === 'shows' ? 'No shows yet' : 'No dream shows yet'}
+              No shows yet
             </p>
           </div>
         ) : (() => {
           // Build groups
           const groups: { label: string; shows: any[] }[] = []
           if (groupBy === 'date') {
-            groups.push({ label: '', shows: activeShows })
+            groups.push({ label: '', shows: shows })
           } else if (groupBy === 'year') {
             const yearMap: Record<string, any[]> = {}
-            activeShows.forEach(s => {
+            shows.forEach(s => {
               const y = s.date ? new Date(s.date).getFullYear().toString() : 'Unknown'
               if (!yearMap[y]) yearMap[y] = []
               yearMap[y].push(s)
@@ -188,7 +157,7 @@ export default function PublicProfilePage() {
             })
           } else {
             const artistMap: Record<string, any[]> = {}
-            activeShows.forEach(s => {
+            shows.forEach(s => {
               const a = s.artist || 'Unknown'
               if (!artistMap[a]) artistMap[a] = []
               artistMap[a].push(s)
@@ -221,8 +190,7 @@ export default function PublicProfilePage() {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                           <div style={{ flex: 1 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                              {tab === 'dreams' && <span style={{ fontSize: '14px' }}>✨</span>}
-                              <h3 style={{ fontWeight: 700, fontSize: groupBy === 'artist' ? '16px' : '18px', color: '#2C4A6E', margin: 0 }}>
+                                              <h3 style={{ fontWeight: 700, fontSize: groupBy === 'artist' ? '16px' : '18px', color: '#2C4A6E', margin: 0 }}>
                                 {groupBy === 'artist' ? show.venue || show.artist : show.artist}
                               </h3>
                             </div>
@@ -246,7 +214,7 @@ export default function PublicProfilePage() {
         })()}
 
         {/* Year breakdown */}
-        {shows.length > 0 && tab === 'shows' && years.length > 1 && (
+        {shows.length > 0 && years.length > 1 && (
           <div style={{ marginTop: '36px', backgroundColor: '#EDE8DF', borderRadius: '16px', border: '1px solid #8BA5C0', padding: '20px' }}>
             <p style={{ fontSize: '12px', fontWeight: 600, letterSpacing: '0.1em', color: '#8BA5C0', margin: '0 0 16px', textTransform: 'uppercase' }}>Shows by Year</p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
