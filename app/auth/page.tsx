@@ -23,6 +23,12 @@ function AuthForm() {
       if (error) { setError(error.message) }
       else if (data.user) {
         await supabase.from('profiles').insert({ id: data.user.id, username })
+        // Send welcome email (fire and forget — don't block signup)
+        fetch('/api/send-welcome', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
+        }).catch(() => {})
         if (data.session) {
           router.push(redirect)
         } else {
