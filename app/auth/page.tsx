@@ -58,7 +58,7 @@ function AuthForm() {
   }
 
   const headline = mode === 'login' ? 'Welcome back.' : mode === 'signup' ? 'Join the show.' : 'Reset your password.'
-  const subtext = mode === 'login' ? 'Sign in to your account' : mode === 'signup' ? 'Create your Moonhead account' : 'Enter your email and we\u2019ll send you a reset link'
+  const subtext = mode === 'login' ? 'Sign in to your account' : mode === 'signup' ? 'Create your Tourbustix account' : 'Enter your email and we\u2019ll send you a reset link'
   const buttonLabel = mode === 'login' ? 'Log In' : mode === 'signup' ? 'Create Account' : 'Send Reset Link'
 
   return (

@@ -11,6 +11,8 @@ export default function ProfilePage() {
   const [checkins, setCheckins] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<any>(null)
+  const [username, setUsername] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
 
   // Sort & filter state
   const [sortBy, setSortBy] = useState<SortOption>('date-desc')
@@ -29,6 +31,9 @@ export default function ProfilePage() {
       const { data: { user } } = await supabase.auth.getUser()
       setUser(user)
       if (user) {
+        // Fetch username for share link
+        const { data: profileData } = await supabase.from('profiles').select('username').eq('id', user.id).single()
+        if (profileData?.username) setUsername(profileData.username)
         const { data } = await supabase.from("checkins").select("*").eq("user_id", user.id).or("is_dream.eq.false,is_dream.is.null").order("created_at", { ascending: false })
         setCheckins(data || [])
         const { data: dreamData } = await supabase.from("checkins").select("*").eq("user_id", user.id).eq("is_dream", true).order("created_at", { ascending: false })
@@ -148,6 +153,21 @@ export default function ProfilePage() {
             </div>
           ))}
         </div>
+
+        {/* Share profile link */}
+        {username && (
+          <button
+            onClick={() => {
+              const url = `${window.location.origin}/u/${username}`
+              navigator.clipboard?.writeText(url)
+              setCopied(true)
+              setTimeout(() => setCopied(false), 2500)
+            }}
+            style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '14px', borderRadius: '999px', fontWeight: 600, fontSize: '14px', border: '1.5px solid #8BA5C0', color: '#5C7A9E', background: 'transparent', cursor: 'pointer', marginBottom: '16px', textAlign: 'center' }}
+          >
+            {copied ? 'Link Copied!' : '🔗 Share My Profile'}
+          </button>
+        )}
 
         {/* Tab switcher */}
         <div style={{ display: 'flex', gap: '0', marginBottom: '24px', borderRadius: '999px', overflow: 'hidden', border: '1.5px solid #8BA5C0' }}>
