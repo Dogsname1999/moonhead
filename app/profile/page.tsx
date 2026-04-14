@@ -35,22 +35,43 @@ export default function ProfilePage() {
     loadData()
   }, [])
 
-  // Check Archive.org for recordings after checkins load
+  // Check Archive.org for recordings directly from the browser (no server timeout)
   useEffect(() => {
     if (checkins.length === 0) return
     const checkArchive = async () => {
-      try {
-        const res = await fetch('/api/archive-check', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            shows: checkins.map(s => ({ id: s.id, artist: s.artist, date: s.date }))
-          })
-        })
-        const data = await res.json()
-        if (data.results) setArchiveLinks(data.results)
-      } catch (err) {
-        // Silently fail
+      const artistMap = new Map<string, { id: string; date: string }[]>()
+      checkins.forEach(s => {
+        if (!s.artist || !s.date) return
+        const key = s.artist.trim()
+        if (!artistMap.has(key)) artistMap.set(key, [])
+        artistMap.get(key)!.push({ id: s.id, date: s.date.substring(0, 10) })
+      })
+      const links: Record<string, string> = {}
+      const entries = [...artistMap.entries()]
+      const BATCH = 6
+      for (let i = 0; i < entries.length; i += BATCH) {
+        await Promise.all(entries.slice(i, i + BATCH).map(async ([artist, items]) => {
+          try {
+            const dates = [...new Set(items.map(it => it.date))]
+            const dateClause = dates.map(d => `date:${d}`).join(' OR ')
+            const q = `creator:"${artist}" AND mediatype:etree AND (${dateClause})`
+            const url = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(q)}&fl[]=identifier&fl[]=date&sort[]=downloads+desc&output=json&rows=${dates.length * 3}`
+            const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
+            if (!res.ok) return
+            const data = await res.json()
+            const docs = data?.response?.docs || []
+            const dateHits: Record<string, string> = {}
+            docs.forEach((doc: any) => {
+              if (!doc.date || !doc.identifier) return
+              const ad = doc.date.substring(0, 10)
+              if (!dateHits[ad]) dateHits[ad] = doc.identifier
+            })
+            items.forEach(it => {
+              if (dateHits[it.date]) links[it.id] = `https://archive.org/details/${dateHits[it.date]}`
+            })
+          } catch {}
+        }))
+        setArchiveLinks(prev => ({ ...prev, ...links }))
       }
     }
     checkArchive()
