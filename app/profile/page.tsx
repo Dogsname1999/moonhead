@@ -278,6 +278,12 @@ export default function ProfilePage() {
 
         </>
       </div>
+
+      {/* Floating add button */}
+      <button onClick={() => router.push("/pastshow")}
+        style={{ position: 'fixed', bottom: '28px', right: '28px', width: '56px', height: '56px', borderRadius: '50%', backgroundColor: '#2C4A6E', color: '#F5F0E8', border: 'none', cursor: 'pointer', fontSize: '28px', fontWeight: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(44,74,110,0.35)', zIndex: 20, lineHeight: 1 }}>
+        +
+      </button>
     </div>
   )
 }
