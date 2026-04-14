@@ -17,6 +17,7 @@ export default function ProfilePage() {
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [archiveLinks, setArchiveLinks] = useState<Record<string, string>>({})
+  const [relistenLinks, setRelistenLinks] = useState<Record<string, string>>({})
 
   useEffect(() => {
     const loadData = async () => {
@@ -35,10 +36,18 @@ export default function ProfilePage() {
     loadData()
   }, [])
 
-  // Check Archive.org for recordings directly from the browser (no server timeout)
+  // Check Archive.org + Relisten for recordings
   useEffect(() => {
     if (checkins.length === 0) return
-    const checkArchive = async () => {
+    const checkRecordings = async () => {
+      // Fetch Relisten artist slugs
+      let relistenArtists: Record<string, string> = {}
+      try {
+        const rlRes = await fetch('https://api.relisten.net/api/v2/artists', { signal: AbortSignal.timeout(5000) })
+        const rlData = await rlRes.json()
+        rlData.forEach((a: any) => { if (a.slug && a.name) relistenArtists[a.name.toLowerCase()] = a.slug })
+      } catch {}
+
       const artistMap = new Map<string, { id: string; date: string }[]>()
       checkins.forEach(s => {
         if (!s.artist || !s.date) return
@@ -46,7 +55,8 @@ export default function ProfilePage() {
         if (!artistMap.has(key)) artistMap.set(key, [])
         artistMap.get(key)!.push({ id: s.id, date: s.date.substring(0, 10) })
       })
-      const links: Record<string, string> = {}
+      const archLinks: Record<string, string> = {}
+      const rlLinks: Record<string, string> = {}
       const entries = [...artistMap.entries()]
       const BATCH = 6
       for (let i = 0; i < entries.length; i += BATCH) {
@@ -66,15 +76,23 @@ export default function ProfilePage() {
               const ad = doc.date.substring(0, 10)
               if (!dateHits[ad]) dateHits[ad] = doc.identifier
             })
+            const slug = relistenArtists[artist.toLowerCase()]
             items.forEach(it => {
-              if (dateHits[it.date]) links[it.id] = `https://archive.org/details/${dateHits[it.date]}`
+              if (dateHits[it.date]) {
+                archLinks[it.id] = `https://archive.org/details/${dateHits[it.date]}`
+                if (slug) {
+                  const [y, m, d] = it.date.split('-')
+                  rlLinks[it.id] = `https://relisten.net/${slug}/${y}/${m}/${d}`
+                }
+              }
             })
           } catch {}
         }))
-        setArchiveLinks(prev => ({ ...prev, ...links }))
+        setArchiveLinks(prev => ({ ...prev, ...archLinks }))
+        setRelistenLinks(prev => ({ ...prev, ...rlLinks }))
       }
     }
-    checkArchive()
+    checkRecordings()
   }, [checkins])
 
   const formatDate = (d: string) => {
@@ -284,6 +302,22 @@ export default function ProfilePage() {
                       </p>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <p style={{ fontSize: '14px', fontWeight: 500, color: '#2C4A6E', margin: 0 }}>{formatDate(show.date)}</p>
+                        {relistenLinks[show.id] && (
+                          <a
+                            href={relistenLinks[show.id]}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', gap: '3px',
+                              fontSize: '12px', color: '#5C7A9E', textDecoration: 'none',
+                              whiteSpace: 'nowrap',
+                            }}
+                            title="Listen on Relisten"
+                          >
+                            🎧 Relisten
+                          </a>
+                        )}
                         {archiveLinks[show.id] && (
                           <a
                             href={archiveLinks[show.id]}
@@ -297,7 +331,7 @@ export default function ProfilePage() {
                             }}
                             title="Listen on Archive.org"
                           >
-                            🎙 Listen
+                            🎙 Archive
                           </a>
                         )}
                       </div>

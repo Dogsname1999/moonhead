@@ -13,6 +13,7 @@ export default function ConcertPage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [archiveUrl, setArchiveUrl] = useState<string | null>(null)
+  const [relistenUrl, setRelistenUrl] = useState<string | null>(null)
   const [user, setUser] = useState<any>(null)
 
   useEffect(() => {
@@ -41,14 +42,26 @@ export default function ConcertPage() {
           if (existing && existing.length > 0) setSaved(true)
         }
 
-        // Archive.org lookup — convert DD-MM-YYYY to YYYY-MM-DD for archive search
+        // Archive.org + Relisten lookup — convert DD-MM-YYYY to YYYY-MM-DD
         try {
           const dp2 = data.date ? data.date.split('-') : []
           const isoDate = dp2.length === 3 ? dp2[2] + '-' + dp2[1] + '-' + dp2[0] : data.date
           const archiveRes = await fetch('https://archive.org/advancedsearch.php?q=' + encodeURIComponent('creator:"' + data.artist + '" AND mediatype:etree AND date:' + isoDate) + '&fl=identifier&sort=downloads+desc&output=json&rows=1')
           const archiveData = await archiveRes.json()
           const id = archiveData?.response?.docs?.[0]?.identifier
-          if (id) setArchiveUrl('https://archive.org/details/' + id)
+          if (id) {
+            setArchiveUrl('https://archive.org/details/' + id)
+            // Check Relisten
+            try {
+              const rlRes = await fetch('https://api.relisten.net/api/v2/artists', { signal: AbortSignal.timeout(5000) })
+              const rlData = await rlRes.json()
+              const match = rlData.find((a: any) => a.name.toLowerCase() === data.artist.toLowerCase())
+              if (match && isoDate) {
+                const [y, m, d] = isoDate.split('-')
+                setRelistenUrl(`https://relisten.net/${match.slug}/${y}/${m}/${d}`)
+              }
+            } catch {}
+          }
         } catch {}
       } catch { setError('Failed to load show') }
       setLoading(false)
@@ -169,6 +182,13 @@ export default function ConcertPage() {
               </div>
             ))}
           </div>
+        )}
+
+        {/* Relisten */}
+        {relistenUrl && (
+          <a href={relistenUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '18px', borderRadius: '999px', textAlign: 'center', fontWeight: 600, fontSize: '16px', backgroundColor: '#2C4A6E', color: '#F5F0E8', textDecoration: 'none', marginBottom: '12px', border: 'none' }}>
+            🎧 Listen on Relisten
+          </a>
         )}
 
         {/* Archive.org */}
