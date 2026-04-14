@@ -23,94 +23,6 @@ const STATE_NAMES: Record<string, string> = {
   WI:'Wisconsin',WY:'Wyoming',DC:'Washington DC'
 }
 
-// OCR helpers
-const MONTHS_MAP: Record<string, string> = {
-  jan:'01',january:'01',feb:'02',february:'02',mar:'03',march:'03',apr:'04',april:'04',
-  may:'05',jun:'06',june:'06',jul:'07',july:'07',aug:'08',august:'08',sep:'09',sept:'09',september:'09',
-  oct:'10',october:'10',nov:'11',november:'11',dec:'12',december:'12'
-}
-const VENUE_WORDS = ['theater','theatre','arena','center','centre','amphitheater','amphitheatre','pavilion','hall','garden','gardens','stadium','coliseum','ballroom','club','lounge','auditorium','house','room','field','park','grounds','shed','tavern']
-const NOISE_WORDS = new Set(['section','row','seat','gate','door','floor','level','admit','one','general','admission','ga','vip','balcony','pit','lawn','reserved','ticket','tickets','stub','price','total','tax','fee','service','charge','order','confirmation','barcode','no','refund','rain','shine','all','ages','pm','am','www','com','http','https','ticketmaster','livenation','eventbrite'])
-const STATE_SET = new Set(['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'])
-
-function parseStubText(text: string) {
-  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 1)
-  let foundYear = ''
-  let foundVenue = ''
-  let foundArtist = ''
-
-  // Date/year detection
-  for (const line of lines) {
-    const monthName = line.match(/\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sep(?:t(?:ember)?)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{1,2})(?:\s*,?\s*|\s+)(\d{4})\b/i)
-    if (monthName) { foundYear = monthName[3]; break }
-    const slash = line.match(/\b\d{1,2}[\/\-]\d{1,2}[\/\-](\d{4})\b/)
-    if (slash) { foundYear = slash[1]; break }
-    const iso = line.match(/\b(\d{4})-\d{2}-\d{2}\b/)
-    if (iso) { foundYear = iso[1]; break }
-  }
-  if (!foundYear) {
-    for (const line of lines) {
-      const y = line.match(/\b(19[6-9]\d|20[0-3]\d)\b/)
-      if (y) { foundYear = y[1]; break }
-    }
-  }
-
-  // Filter candidate lines — must have at least 3 alpha characters and not be mostly noise
-  const candidates = lines.filter(line => {
-    const alphaOnly = line.replace(/[^a-zA-Z]/g, '')
-    if (alphaOnly.length < 3) return false
-    if (line.length > 80) return false
-    if (/\$\d/.test(line)) return false
-    if (/\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b/.test(line)) return false
-    // Skip lines that are mostly noise/ticket admin words
-    const words = line.toLowerCase().split(/\s+/).filter(w => w.replace(/[^a-z]/g, '').length > 0)
-    if (words.length === 0) return false
-    const noiseCount = words.filter(w => NOISE_WORDS.has(w.replace(/[^a-z]/g, ''))).length
-    if (noiseCount > words.length * 0.5) return false
-    // Skip lines with "presents" (it's the promoter line, not the artist)
-    if (/presents/i.test(line)) return false
-    // Skip lines that look like times (7:00PM, 8PM, etc.)
-    if (/^\d{1,2}:\d{2}\s*(am|pm)/i.test(line.trim())) return false
-    return true
-  })
-
-  // Artist: prefer lines that are mostly alpha and look like names
-  // Score each candidate: longer alpha content + all-caps bonus
-  const scored = candidates.map(l => {
-    const alpha = l.replace(/[^a-zA-Z\s]/g, '').trim()
-    let score = alpha.length
-    if (l === l.toUpperCase() && /[A-Z]/.test(l)) score += 20 // all-caps bonus (headliner)
-    if (VENUE_WORDS.some(v => l.toLowerCase().includes(v))) score -= 50 // penalize venue-like lines
-    if (STATE_SET.has(l.trim().toUpperCase())) score -= 50 // penalize state abbreviations
-    if (/\b(refund|exchange|admission|donate|donation)\b/i.test(l)) score -= 30
-    return { line: l, score }
-  })
-  scored.sort((a, b) => b.score - a.score)
-  foundArtist = scored.length > 0 ? cleanOcrName(scored[0].line) : ''
-
-  // Venue: look for venue indicator words or state abbreviations
-  for (const line of candidates) {
-    if (cleanOcrName(line) === foundArtist) continue
-    const lower = line.toLowerCase()
-    if (VENUE_WORDS.some(v => lower.includes(v))) { foundVenue = cleanOcrName(line); break }
-    if (line.split(/[\s,]+/).some(w => STATE_SET.has(w.toUpperCase()) && w.length === 2)) { foundVenue = cleanOcrName(line); break }
-  }
-
-  return { artist: foundArtist, venue: foundVenue, year: foundYear, rawText: text }
-}
-
-function cleanOcrName(s: string): string {
-  // Strip common OCR artifacts: stray colons, angle brackets, pipes, etc.
-  let c = s.replace(/[|<>:;=\[\]{}\\\/~`^]/g, ' ').replace(/\s+/g, ' ').trim()
-  // Strip leading/trailing punctuation
-  c = c.replace(/^[^a-zA-Z0-9]+/, '').replace(/[^a-zA-Z0-9]+$/, '').trim()
-  // Title case if all caps
-  if (c === c.toUpperCase() && c.length > 2) {
-    c = c.split(' ').map(w => w.length <= 2 ? w : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
-  }
-  return c
-}
-
 function PastShowContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -119,10 +31,9 @@ function PastShowContent() {
   const [stateCode, setStateCode] = useState(searchParams.get('state') || '')
   const [venue, setVenue] = useState(searchParams.get('venue') || '')
   const [scanningStub, setScanningStub] = useState(false)
-  const [scanProgress, setScanProgress] = useState(0)
   const [stubImageUrl, setStubImageUrl] = useState<string | null>(null)
   const [scanError, setScanError] = useState('')
-  const [rawOcrText, setRawOcrText] = useState('')
+  const [scanResult, setScanResult] = useState<{ artist: string; venue: string; city: string; date: string; year: string } | null>(null)
   const stubFileRef = useRef<HTMLInputElement>(null)
   const [results, setResults] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
@@ -195,52 +106,32 @@ function PastShowContent() {
     lookup()
   }, [expandedShow])
 
-  // Load Tesseract.js via script tag (CDN)
-  const loadTesseract = (): Promise<any> => {
-    return new Promise((resolve, reject) => {
-      if ((window as any).Tesseract) { resolve((window as any).Tesseract); return }
-      const script = document.createElement('script')
-      script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'
-      script.onload = () => resolve((window as any).Tesseract)
-      script.onerror = () => reject(new Error('Failed to load OCR library'))
-      document.head.appendChild(script)
-    })
-  }
-
   const handleStubScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
     setScanError('')
-    setRawOcrText('')
+    setScanResult(null)
     setStubImageUrl(URL.createObjectURL(file))
     setScanningStub(true)
-    setScanProgress(0)
     try {
-      const Tesseract = await loadTesseract()
-      const result = await Tesseract.recognize(file, 'eng', {
-        logger: (m: any) => {
-          if (m.status === 'recognizing text') setScanProgress(Math.round((m.progress || 0) * 100))
-        }
-      })
-      const text = result.data.text
-      if (!text || text.trim().length < 5) {
-        setScanError('Could not read text from the image. Try a clearer photo with good lighting.')
+      const formData = new FormData()
+      formData.append('image', file)
+      const res = await fetch('/api/scan-stub', { method: 'POST', body: formData })
+      const data = await res.json()
+      if (!res.ok) {
+        setScanError(data.error || 'Failed to analyze the ticket stub.')
         setScanningStub(false)
         return
       }
-      const parsed = parseStubText(text)
-      setRawOcrText(parsed.rawText)
-      // Only pre-fill if OCR produced something that looks reasonable (3+ alpha chars)
-      const alphaCount = (s: string) => (s.match(/[a-zA-Z]/g) || []).length
-      if (parsed.artist && alphaCount(parsed.artist) >= 3) setArtist(parsed.artist)
-      if (parsed.venue && alphaCount(parsed.venue) >= 3) setVenue(parsed.venue)
-      if (parsed.year && /^(19|20)\d{2}$/.test(parsed.year)) setYear(parsed.year)
+      setScanResult(data)
+      if (data.artist) setArtist(data.artist)
+      if (data.venue) setVenue(data.venue)
+      if (data.year) setYear(data.year)
     } catch (err) {
-      console.error('OCR error:', err)
+      console.error('Scan error:', err)
       setScanError('Failed to scan the image. Please try again.')
     }
     setScanningStub(false)
-    // Reset file input so same file can be re-selected
     if (stubFileRef.current) stubFileRef.current.value = ''
   }
 
@@ -353,13 +244,12 @@ function PastShowContent() {
             <div style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', border: '1px solid #8BA5C0', marginBottom: '12px' }}>
               <img src={stubImageUrl} alt="Ticket stub" style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', display: 'block' }} />
               {scanningStub && (
-                <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(44,74,110,0.75)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                  <div style={{ width: '60%', height: '6px', borderRadius: '3px', backgroundColor: 'rgba(245,240,232,0.3)', overflow: 'hidden' }}>
-                    <div style={{ width: `${scanProgress}%`, height: '100%', backgroundColor: '#F5F0E8', borderRadius: '3px', transition: 'width 0.3s' }} />
-                  </div>
+                <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(44,74,110,0.8)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+                  <div style={{ width: '40px', height: '40px', border: '3px solid rgba(245,240,232,0.3)', borderTop: '3px solid #F5F0E8', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
                   <p style={{ color: '#F5F0E8', fontSize: '14px', fontWeight: 600, margin: 0 }}>
-                    Scanning... {scanProgress}%
+                    Reading your stub...
                   </p>
+                  <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
                 </div>
               )}
             </div>
@@ -371,7 +261,7 @@ function PastShowContent() {
                 style={{ background: 'none', border: 'none', color: '#5C7A9E', fontSize: '13px', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
                 Try different photo
               </button>
-              <button onClick={() => { setStubImageUrl(null); setRawOcrText(''); setArtist(''); setVenue(''); setYear('') }}
+              <button onClick={() => { setStubImageUrl(null); setScanResult(null); setArtist(''); setVenue(''); setYear('') }}
                 style={{ background: 'none', border: 'none', color: '#8BA5C0', fontSize: '13px', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
                 Clear
               </button>
@@ -382,13 +272,24 @@ function PastShowContent() {
             <p style={{ color: '#c0392b', fontSize: '13px', margin: '0 0 12px' }}>{scanError}</p>
           )}
 
-          {/* Show scanned text prominently so user can read it */}
-          {rawOcrText && !scanningStub && (
-            <div style={{ backgroundColor: '#EDE8DF', borderRadius: '12px', border: '1px solid #8BA5C0', padding: '14px', marginBottom: '16px' }}>
-              <p style={{ fontSize: '12px', fontWeight: 600, color: '#8BA5C0', letterSpacing: '0.08em', margin: '0 0 8px', textTransform: 'uppercase' }}>Text we found on your stub:</p>
-              <p style={{ fontSize: '14px', color: '#2C4A6E', margin: '0 0 10px', lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: '120px', overflow: 'auto' }}>{rawOcrText.trim()}</p>
-              <p style={{ fontSize: '12px', color: '#5C7A9E', margin: 0, fontStyle: 'italic' }}>
-                Read the text above, then type the artist name below to search
+          {/* AI Vision results */}
+          {scanResult && !scanningStub && (
+            <div style={{ backgroundColor: '#EDE8DF', borderRadius: '12px', border: '1.5px solid #2C4A6E', padding: '16px', marginBottom: '16px' }}>
+              <p style={{ fontSize: '12px', fontWeight: 600, color: '#2C4A6E', letterSpacing: '0.08em', margin: '0 0 12px', textTransform: 'uppercase' }}>We found this on your stub:</p>
+              {scanResult.artist && (
+                <p style={{ fontSize: '18px', fontWeight: 700, color: '#2C4A6E', margin: '0 0 4px' }}>{scanResult.artist}</p>
+              )}
+              {scanResult.venue && (
+                <p style={{ fontSize: '14px', color: '#5C7A9E', margin: '0 0 2px' }}>{scanResult.venue}</p>
+              )}
+              {scanResult.city && (
+                <p style={{ fontSize: '14px', color: '#5C7A9E', margin: '0 0 2px' }}>{scanResult.city}</p>
+              )}
+              {(scanResult.date || scanResult.year) && (
+                <p style={{ fontSize: '14px', fontWeight: 500, color: '#2C4A6E', margin: '4px 0 0' }}>{scanResult.date || scanResult.year}</p>
+              )}
+              <p style={{ fontSize: '12px', color: '#8BA5C0', margin: '10px 0 0', fontStyle: 'italic' }}>
+                Fields below are pre-filled — edit if needed, then search
               </p>
             </div>
           )}
