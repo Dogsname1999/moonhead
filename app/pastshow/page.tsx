@@ -140,8 +140,18 @@ function PastShowContent() {
       if (data.city) setManualCity(data.city)
       if (data.date) setManualDate(data.date)
       if (data.year) setYear(data.year)
+      // Try to extract state from city field (e.g. "East Rutherford, NJ")
+      if (data.city) {
+        const parts = data.city.split(',').map((s: string) => s.trim())
+        const lastPart = parts[parts.length - 1]?.toUpperCase()
+        if (lastPart && US_STATES.includes(lastPart)) {
+          setStateCode(lastPart)
+        }
+      }
       setSuggestions([])
       setShowSuggestions(false)
+      // Auto-search after scan
+      scanSearchRef.current = { artist: data.artist, year: data.year, venue: data.venue }
     } catch (err) {
       console.error('Scan error:', err)
       setScanError('Failed to scan the image. Please try again.')
@@ -149,6 +159,18 @@ function PastShowContent() {
     setScanningStub(false)
     if (stubFileRef.current) stubFileRef.current.value = ''
   }
+
+  // Auto-search after scan sets fields (need useEffect since state updates are async)
+  const scanSearchRef = useRef<{ artist: string; year: string; venue: string } | null>(null)
+  useEffect(() => {
+    if (scanSearchRef.current && scanSearchRef.current.artist) {
+      const timer = setTimeout(() => {
+        search(1)
+        scanSearchRef.current = null
+      }, 400)
+      return () => clearTimeout(timer)
+    }
+  }, [artist, year, stateCode, venue]) // triggers when scan sets these
 
   // Save stub image as a memory on a checkin
   const saveStubImage = async (checkinId: string, userId: string, file: File) => {
