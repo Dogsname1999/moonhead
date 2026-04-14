@@ -55,21 +55,38 @@ function parseStubText(text: string) {
     }
   }
 
-  // Filter candidate lines
+  // Filter candidate lines — must have at least 3 alpha characters and not be mostly noise
   const candidates = lines.filter(line => {
-    if (line.length < 3 || line.length > 80) return false
-    if (line.replace(/\d/g, '').trim().length < 3) return false
+    const alphaOnly = line.replace(/[^a-zA-Z]/g, '')
+    if (alphaOnly.length < 3) return false
+    if (line.length > 80) return false
     if (/\$\d/.test(line)) return false
     if (/\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b/.test(line)) return false
-    const words = line.toLowerCase().split(/\s+/)
+    // Skip lines that are mostly noise/ticket admin words
+    const words = line.toLowerCase().split(/\s+/).filter(w => w.replace(/[^a-z]/g, '').length > 0)
+    if (words.length === 0) return false
     const noiseCount = words.filter(w => NOISE_WORDS.has(w.replace(/[^a-z]/g, ''))).length
-    if (noiseCount > words.length * 0.6) return false
+    if (noiseCount > words.length * 0.5) return false
+    // Skip lines with "presents" (it's the promoter line, not the artist)
+    if (/presents/i.test(line)) return false
+    // Skip lines that look like times (7:00PM, 8PM, etc.)
+    if (/^\d{1,2}:\d{2}\s*(am|pm)/i.test(line.trim())) return false
     return true
   })
 
-  // Artist: prefer all-caps lines (headliner), else first candidate
-  const allCaps = candidates.filter(l => l === l.toUpperCase() && /[A-Z]/.test(l))
-  foundArtist = cleanOcrName(allCaps.length > 0 ? allCaps[0] : (candidates[0] || ''))
+  // Artist: prefer lines that are mostly alpha and look like names
+  // Score each candidate: longer alpha content + all-caps bonus
+  const scored = candidates.map(l => {
+    const alpha = l.replace(/[^a-zA-Z\s]/g, '').trim()
+    let score = alpha.length
+    if (l === l.toUpperCase() && /[A-Z]/.test(l)) score += 20 // all-caps bonus (headliner)
+    if (VENUE_WORDS.some(v => l.toLowerCase().includes(v))) score -= 50 // penalize venue-like lines
+    if (STATE_SET.has(l.trim().toUpperCase())) score -= 50 // penalize state abbreviations
+    if (/\b(refund|exchange|admission|donate|donation)\b/i.test(l)) score -= 30
+    return { line: l, score }
+  })
+  scored.sort((a, b) => b.score - a.score)
+  foundArtist = scored.length > 0 ? cleanOcrName(scored[0].line) : ''
 
   // Venue: look for venue indicator words or state abbreviations
   for (const line of candidates) {
@@ -83,7 +100,11 @@ function parseStubText(text: string) {
 }
 
 function cleanOcrName(s: string): string {
-  let c = s.replace(/\s+/g, ' ').trim()
+  // Strip common OCR artifacts: stray colons, angle brackets, pipes, etc.
+  let c = s.replace(/[|<>:;=\[\]{}\\\/~`^]/g, ' ').replace(/\s+/g, ' ').trim()
+  // Strip leading/trailing punctuation
+  c = c.replace(/^[^a-zA-Z0-9]+/, '').replace(/[^a-zA-Z0-9]+$/, '').trim()
+  // Title case if all caps
   if (c === c.toUpperCase() && c.length > 2) {
     c = c.split(' ').map(w => w.length <= 2 ? w : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
   }
@@ -209,9 +230,11 @@ function PastShowContent() {
       }
       const parsed = parseStubText(text)
       setRawOcrText(parsed.rawText)
-      if (parsed.artist) setArtist(parsed.artist)
-      if (parsed.venue) setVenue(parsed.venue)
-      if (parsed.year) setYear(parsed.year)
+      // Only pre-fill if OCR produced something that looks reasonable (3+ alpha chars)
+      const alphaCount = (s: string) => (s.match(/[a-zA-Z]/g) || []).length
+      if (parsed.artist && alphaCount(parsed.artist) >= 3) setArtist(parsed.artist)
+      if (parsed.venue && alphaCount(parsed.venue) >= 3) setVenue(parsed.venue)
+      if (parsed.year && /^(19|20)\d{2}$/.test(parsed.year)) setYear(parsed.year)
     } catch (err) {
       console.error('OCR error:', err)
       setScanError('Failed to scan the image. Please try again.')
@@ -348,7 +371,7 @@ function PastShowContent() {
                 style={{ background: 'none', border: 'none', color: '#5C7A9E', fontSize: '13px', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
                 Try different photo
               </button>
-              <button onClick={() => { setStubImageUrl(null); setRawOcrText('') }}
+              <button onClick={() => { setStubImageUrl(null); setRawOcrText(''); setArtist(''); setVenue(''); setYear('') }}
                 style={{ background: 'none', border: 'none', color: '#8BA5C0', fontSize: '13px', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
                 Clear
               </button>
@@ -359,13 +382,15 @@ function PastShowContent() {
             <p style={{ color: '#c0392b', fontSize: '13px', margin: '0 0 12px' }}>{scanError}</p>
           )}
 
+          {/* Show scanned text prominently so user can read it */}
           {rawOcrText && !scanningStub && (
-            <details style={{ marginBottom: '12px' }}>
-              <summary style={{ fontSize: '12px', color: '#8BA5C0', cursor: 'pointer' }}>View scanned text</summary>
-              <pre style={{ fontSize: '11px', color: '#5C7A9E', backgroundColor: '#EDE8DF', padding: '10px', borderRadius: '8px', marginTop: '6px', whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: '150px', overflow: 'auto' }}>
-                {rawOcrText}
-              </pre>
-            </details>
+            <div style={{ backgroundColor: '#EDE8DF', borderRadius: '12px', border: '1px solid #8BA5C0', padding: '14px', marginBottom: '16px' }}>
+              <p style={{ fontSize: '12px', fontWeight: 600, color: '#8BA5C0', letterSpacing: '0.08em', margin: '0 0 8px', textTransform: 'uppercase' }}>Text we found on your stub:</p>
+              <p style={{ fontSize: '14px', color: '#2C4A6E', margin: '0 0 10px', lineHeight: 1.5, whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: '120px', overflow: 'auto' }}>{rawOcrText.trim()}</p>
+              <p style={{ fontSize: '12px', color: '#5C7A9E', margin: 0, fontStyle: 'italic' }}>
+                Read the text above, then type the artist name below to search
+              </p>
+            </div>
           )}
 
           {!stubImageUrl && !scanningStub && (
