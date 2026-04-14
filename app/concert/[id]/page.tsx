@@ -41,9 +41,11 @@ export default function ConcertPage() {
           if (existing && existing.length > 0) setSaved(true)
         }
 
-        // Archive.org lookup
+        // Archive.org lookup — convert DD-MM-YYYY to YYYY-MM-DD for archive search
         try {
-          const archiveRes = await fetch('https://archive.org/advancedsearch.php?q=' + encodeURIComponent('collection:etree AND creator:"' + data.artist + '" AND date:' + data.date) + '&fl=identifier&sort=downloads+desc&output=json&rows=1')
+          const dp2 = data.date ? data.date.split('-') : []
+          const isoDate = dp2.length === 3 ? dp2[2] + '-' + dp2[1] + '-' + dp2[0] : data.date
+          const archiveRes = await fetch('https://archive.org/advancedsearch.php?q=' + encodeURIComponent('creator:"' + data.artist + '" AND mediatype:etree AND date:' + isoDate) + '&fl=identifier&sort=downloads+desc&output=json&rows=1')
           const archiveData = await archiveRes.json()
           const id = archiveData?.response?.docs?.[0]?.identifier
           if (id) setArchiveUrl('https://archive.org/details/' + id)
