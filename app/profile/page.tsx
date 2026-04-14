@@ -267,9 +267,14 @@ export default function ProfilePage() {
             </div>
           )
         })()}
-        <button onClick={() => router.push("/search")} style={{ width: '100%', marginTop: '36px', padding: '18px', borderRadius: '999px', fontWeight: 600, fontSize: '16px', backgroundColor: '#2C4A6E', color: '#F5F0E8', border: 'none', cursor: 'pointer' }}>
-          + Check In to a Show
-        </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '36px' }}>
+          <button onClick={() => router.push("/pastshow")} style={{ width: '100%', padding: '16px', borderRadius: '999px', fontWeight: 600, fontSize: '16px', backgroundColor: '#2C4A6E', color: '#F5F0E8', border: 'none', cursor: 'pointer' }}>
+            + Add a Show
+          </button>
+          <button onClick={() => router.push("/search")} style={{ width: '100%', padding: '14px', borderRadius: '999px', fontWeight: 600, fontSize: '14px', border: '1.5px solid #8BA5C0', color: '#5C7A9E', background: 'transparent', cursor: 'pointer' }}>
+            🔍 Find Upcoming Shows
+          </button>
+        </div>
 
         </>
       </div>

@@ -34,7 +34,14 @@ function PastShowContent() {
   const [stubImageUrl, setStubImageUrl] = useState<string | null>(null)
   const [scanError, setScanError] = useState('')
   const [scanResult, setScanResult] = useState<{ artist: string; venue: string; city: string; date: string; year: string } | null>(null)
+  const [stubFile, setStubFile] = useState<File | null>(null)
   const stubFileRef = useRef<HTMLInputElement>(null)
+  const [showManual, setShowManual] = useState(false)
+  const [manualArtist, setManualArtist] = useState('')
+  const [manualVenue, setManualVenue] = useState('')
+  const [manualCity, setManualCity] = useState('')
+  const [manualDate, setManualDate] = useState('')
+  const [savingManual, setSavingManual] = useState(false)
   const [results, setResults] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState('')
@@ -111,6 +118,7 @@ function PastShowContent() {
     if (!file) return
     setScanError('')
     setScanResult(null)
+    setStubFile(file)
     setStubImageUrl(URL.createObjectURL(file))
     setScanningStub(true)
     try {
@@ -127,8 +135,10 @@ function PastShowContent() {
       // Suppress autocomplete dropdown when pre-filling from scan
       justSelectedRef.current = true
       searchedRef.current = true
-      if (data.artist) setArtist(data.artist)
-      if (data.venue) setVenue(data.venue)
+      if (data.artist) { setArtist(data.artist); setManualArtist(data.artist) }
+      if (data.venue) { setVenue(data.venue); setManualVenue(data.venue) }
+      if (data.city) setManualCity(data.city)
+      if (data.date) setManualDate(data.date)
       if (data.year) setYear(data.year)
       setSuggestions([])
       setShowSuggestions(false)
@@ -138,6 +148,43 @@ function PastShowContent() {
     }
     setScanningStub(false)
     if (stubFileRef.current) stubFileRef.current.value = ''
+  }
+
+  // Save stub image as a memory on a checkin
+  const saveStubImage = async (checkinId: string, userId: string, file: File) => {
+    try {
+      const ext = file.name?.split('.').pop() || 'jpg'
+      const fileName = `${userId}/${checkinId}/stub-${Date.now()}.${ext}`
+      const { error: uploadErr } = await supabase.storage.from('memories').upload(fileName, file, { contentType: file.type, upsert: false })
+      if (uploadErr) { console.error('Stub upload error:', uploadErr); return }
+      const { data: urlData } = supabase.storage.from('memories').getPublicUrl(fileName)
+      if (urlData?.publicUrl) {
+        await supabase.from('memories').insert({
+          checkin_id: checkinId, user_id: userId, type: 'photo',
+          content: urlData.publicUrl, caption: 'Ticket stub', image_url: urlData.publicUrl
+        })
+      }
+    } catch (e) { console.error('Stub save error:', e) }
+  }
+
+  const saveManualShow = async () => {
+    if (!manualArtist.trim()) return
+    setSavingManual(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push('/auth?redirect=/pastshow'); return }
+      const { data: checkin, error: insertError } = await supabase.from('checkins').insert({
+        user_id: user.id, artist: manualArtist.trim(), venue: manualVenue.trim(),
+        city: manualCity.trim(), date: manualDate || null, note: '', source: 'manual', is_dream: false
+      }).select().single()
+      if (insertError) { console.error('Insert error:', insertError); setSavingManual(false); return }
+      if (checkin) {
+        // Save stub image if we have one from scanning
+        if (stubFile) await saveStubImage(checkin.id, user.id, stubFile)
+        setTimeout(() => router.push('/show/' + checkin.id), 800)
+      }
+    } catch (e) { console.error(e) }
+    setSavingManual(false)
   }
 
   const selectArtist = (name: string) => {
@@ -218,6 +265,8 @@ function PastShowContent() {
         })))
       }
       if (checkin) {
+        // Save stub image if we scanned one
+        if (stubFile) await saveStubImage(checkin.id, user.id, stubFile)
         setSaved(prev => [...prev, show.id])
         setTimeout(() => router.push('/show/' + checkin.id), 800)
       }
@@ -465,8 +514,55 @@ function PastShowContent() {
           </div>
         )}
 
-        {!loading && results.length === 0 && artist && (
-          <p style={{ color: '#8BA5C0', textAlign: 'center', marginTop: '32px' }}>No shows found. Try adjusting your filters — different year, state, or venue.</p>
+        {!loading && results.length === 0 && artist && !showManual && (
+          <div style={{ textAlign: 'center', marginTop: '32px' }}>
+            <p style={{ color: '#8BA5C0', marginBottom: '16px' }}>No shows found. Try adjusting your filters — different year, state, or venue.</p>
+            <button onClick={() => { setShowManual(true); if (!manualArtist) setManualArtist(artist) }}
+              style={{ background: 'none', border: 'none', color: '#2C4A6E', fontSize: '14px', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}>
+              Add this show manually
+            </button>
+          </div>
+        )}
+
+        {/* Always show "Can't find it?" link after results */}
+        {!loading && results.length > 0 && !showManual && (
+          <button onClick={() => { setShowManual(true); if (!manualArtist) setManualArtist(artist) }}
+            style={{ display: 'block', width: '100%', background: 'none', border: 'none', color: '#5C7A9E', fontSize: '13px', cursor: 'pointer', textAlign: 'center', marginTop: '24px', textDecoration: 'underline' }}>
+            Can&apos;t find your show? Add it manually
+          </button>
+        )}
+
+        {/* Manual entry form */}
+        {showManual && (
+          <div style={{ marginTop: '32px', backgroundColor: '#EDE8DF', borderRadius: '16px', border: '1.5px solid #2C4A6E', padding: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <p style={{ fontSize: '14px', fontWeight: 700, color: '#2C4A6E', margin: 0, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Add Show Manually</p>
+              <button onClick={() => setShowManual(false)} style={{ background: 'none', border: 'none', color: '#8BA5C0', fontSize: '14px', cursor: 'pointer' }}>✕</button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
+              <input type="text" value={manualArtist} onChange={e => setManualArtist(e.target.value)} placeholder="Artist / Band *"
+                style={{ width: '100%', boxSizing: 'border-box', padding: '14px 16px', borderRadius: '12px', border: '1.5px solid #8BA5C0', backgroundColor: '#F5F0E8', color: '#2C4A6E', fontSize: '16px', fontWeight: 600, outline: 'none' }} />
+              <input type="text" value={manualVenue} onChange={e => setManualVenue(e.target.value)} placeholder="Venue"
+                style={{ width: '100%', boxSizing: 'border-box', padding: '14px 16px', borderRadius: '12px', border: '1.5px solid #8BA5C0', backgroundColor: '#F5F0E8', color: '#2C4A6E', fontSize: '16px', outline: 'none' }} />
+              <input type="text" value={manualCity} onChange={e => setManualCity(e.target.value)} placeholder="City, State"
+                style={{ width: '100%', boxSizing: 'border-box', padding: '14px 16px', borderRadius: '12px', border: '1.5px solid #8BA5C0', backgroundColor: '#F5F0E8', color: '#2C4A6E', fontSize: '16px', outline: 'none' }} />
+              <input type="date" value={manualDate} onChange={e => setManualDate(e.target.value)}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '14px 16px', borderRadius: '12px', border: '1.5px solid #8BA5C0', backgroundColor: '#F5F0E8', color: '#2C4A6E', fontSize: '16px', outline: 'none' }} />
+            </div>
+
+            {stubImageUrl && (
+              <div style={{ borderRadius: '8px', overflow: 'hidden', border: '1px solid #8BA5C0', marginBottom: '12px' }}>
+                <img src={stubImageUrl} alt="Stub" style={{ width: '100%', maxHeight: '120px', objectFit: 'cover', display: 'block' }} />
+                <p style={{ fontSize: '11px', color: '#8BA5C0', textAlign: 'center', padding: '6px', margin: 0 }}>Stub photo will be saved to this show</p>
+              </div>
+            )}
+
+            <button onClick={saveManualShow} disabled={savingManual || !manualArtist.trim()}
+              style={{ width: '100%', padding: '16px', borderRadius: '999px', fontWeight: 600, fontSize: '16px', backgroundColor: !manualArtist.trim() ? '#8BA5C0' : '#2C4A6E', color: '#F5F0E8', border: 'none', cursor: manualArtist.trim() ? 'pointer' : 'default' }}>
+              {savingManual ? 'Saving...' : 'Add to My Shows'}
+            </button>
+          </div>
         )}
       </div>
     </div>
