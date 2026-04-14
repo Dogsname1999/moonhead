@@ -12,6 +12,7 @@ export default function ShowPage() {
   const [songs, setSongs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [archiveUrl, setArchiveUrl] = useState<string | null>(null)
+  const [relistenUrl, setRelistenUrl] = useState<string | null>(null)
   const [ebaySearches, setEbaySearches] = useState<any[]>([])
   const [hasMemories, setHasMemories] = useState(false)
 
@@ -26,10 +27,22 @@ export default function ShowPage() {
       setLoading(false)
       if (showData) {
         try {
-          const archiveRes = await fetch('https://archive.org/advancedsearch.php?q=' + encodeURIComponent('collection:etree AND creator:"' + showData.artist + '" AND date:' + showData.date) + '&fl=identifier&sort=downloads+desc&output=json&rows=1')
+          const archiveRes = await fetch('https://archive.org/advancedsearch.php?q=' + encodeURIComponent('creator:"' + showData.artist + '" AND mediatype:etree AND date:' + showData.date) + '&fl=identifier&sort=downloads+desc&output=json&rows=1')
           const archiveData = await archiveRes.json()
           const id = archiveData?.response?.docs?.[0]?.identifier
-          if (id) setArchiveUrl('https://archive.org/details/' + id)
+          if (id) {
+            setArchiveUrl('https://archive.org/details/' + id)
+            // Check Relisten
+            try {
+              const rlRes = await fetch('https://api.relisten.net/api/v2/artists', { signal: AbortSignal.timeout(5000) })
+              const rlData = await rlRes.json()
+              const match = rlData.find((a: any) => a.name.toLowerCase() === showData.artist.toLowerCase())
+              if (match && showData.date) {
+                const [y, m, d] = showData.date.split('-')
+                setRelistenUrl(`https://relisten.net/${match.slug}/${y}/${m}/${d}`)
+              }
+            } catch {}
+          }
         } catch (e) { console.error(e) }
         try {
           const collectRes = await fetch(`/api/collectibles?artist=${encodeURIComponent(showData.artist)}&date=${encodeURIComponent(showData.date || '')}`)
@@ -120,6 +133,11 @@ export default function ShowPage() {
             </div>
           )
         })()}
+        {relistenUrl && (
+          <a href={relistenUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '18px', borderRadius: '999px', textAlign: 'center', fontWeight: 600, fontSize: '16px', border: '1.5px solid #8BA5C0', color: '#5C7A9E', textDecoration: 'none', marginBottom: '12px' }}>
+            🎧 Listen on Relisten
+          </a>
+        )}
         {archiveUrl && (
           <a href={`/go?url=${encodeURIComponent(archiveUrl)}&label=${encodeURIComponent('Archive.org')}`} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '18px', borderRadius: '999px', textAlign: 'center', fontWeight: 600, fontSize: '16px', border: '1.5px solid #8BA5C0', color: '#5C7A9E', textDecoration: 'none', marginBottom: '16px' }}>
             🎙 Listen on Archive.org
