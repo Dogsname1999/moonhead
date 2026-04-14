@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 // Check Archive.org Live Music Archive for recordings matching artist + date
-// Groups by unique artist to minimize API calls
+// Queries per show (artist+date) for reliability — avoids timeouts on huge collections like Grateful Dead
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,67 +13,49 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ results: {} })
     }
 
-    // Group shows by artist (lowercased for dedup)
-    const artistShows: Record<string, { id: string; date: string }[]> = {}
-    shows.forEach(s => {
-      if (!s.artist || !s.date) return
-      const key = s.artist.trim()
-      if (!artistShows[key]) artistShows[key] = []
-      artistShows[key].push({ id: s.id, date: s.date })
-    })
-
-    // For each unique artist, query Archive.org for etree recordings
     const results: Record<string, string> = {} // show_id -> archive URL
 
-    const artistQueries = Object.entries(artistShows).map(async ([artist, items]) => {
-      try {
-        // Collect all dates for this artist
-        const dates = items.map(i => i.date)
+    // Deduplicate by artist+date so we don't query the same show twice
+    const uniqueKeys = new Map<string, { ids: string[]; artist: string; date: string }>()
+    shows.forEach(s => {
+      if (!s.artist || !s.date) return
+      const key = `${s.artist.trim()}|||${s.date.substring(0, 10)}`
+      const existing = uniqueKeys.get(key)
+      if (existing) {
+        existing.ids.push(s.id)
+      } else {
+        uniqueKeys.set(key, { ids: [s.id], artist: s.artist.trim(), date: s.date.substring(0, 10) })
+      }
+    })
 
-        // Query archive.org advanced search - search by creator and mediatype:etree
-        const query = `creator:"${artist}" AND mediatype:etree`
-        const fields = 'identifier,date'
-        const url = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(query)}&fl[]=${fields.split(',').join('&fl[]=')}&rows=2000&output=json`
+    const queries = [...uniqueKeys.values()].map(({ ids, artist, date }) => async () => {
+      try {
+        const query = `creator:"${artist}" AND mediatype:etree AND date:${date}`
+        const url = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(query)}&fl[]=identifier&sort=downloads+desc&output=json&rows=1`
 
         const res = await fetch(url, {
           headers: { 'User-Agent': 'Tourbustix/1.0 (tourbustix.com)' },
-          signal: AbortSignal.timeout(8000),
+          signal: AbortSignal.timeout(6000),
         })
 
         if (!res.ok) return
 
         const data = await res.json()
-        const docs = data?.response?.docs || []
-
-        // Build a map of date -> first matching identifier
-        const dateMap: Record<string, string> = {}
-        docs.forEach((doc: any) => {
-          if (!doc.date || !doc.identifier) return
-          // Archive.org dates can be "YYYY-MM-DD" or "YYYY-MM-DDT..."
-          const archiveDate = doc.date.substring(0, 10)
-          if (!dateMap[archiveDate]) {
-            dateMap[archiveDate] = doc.identifier
-          }
-        })
-
-        // Match against the user's show dates
-        items.forEach(item => {
-          const showDate = item.date.substring(0, 10)
-          if (dateMap[showDate]) {
-            // Link to search results for that date so user can pick their preferred recording
-            results[item.id] = `https://archive.org/details/${dateMap[showDate]}`
-          }
-        })
+        const identifier = data?.response?.docs?.[0]?.identifier
+        if (identifier) {
+          ids.forEach(id => {
+            results[id] = `https://archive.org/details/${identifier}`
+          })
+        }
       } catch (err) {
-        // Silently skip failed artist lookups
-        console.error(`Archive check failed for ${artist}:`, err)
+        // Silently skip failed lookups
       }
     })
 
-    // Run all artist queries in parallel (but limit concurrency)
-    const BATCH_SIZE = 5
-    for (let i = 0; i < artistQueries.length; i += BATCH_SIZE) {
-      await Promise.all(artistQueries.slice(i, i + BATCH_SIZE))
+    // Run queries in batches to avoid hammering archive.org
+    const BATCH_SIZE = 8
+    for (let i = 0; i < queries.length; i += BATCH_SIZE) {
+      await Promise.all(queries.slice(i, i + BATCH_SIZE).map(fn => fn()))
     }
 
     return NextResponse.json({ results })
