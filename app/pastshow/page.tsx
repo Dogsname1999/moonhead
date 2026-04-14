@@ -124,9 +124,14 @@ function PastShowContent() {
         return
       }
       setScanResult(data)
+      // Suppress autocomplete dropdown when pre-filling from scan
+      justSelectedRef.current = true
+      searchedRef.current = true
       if (data.artist) setArtist(data.artist)
       if (data.venue) setVenue(data.venue)
       if (data.year) setYear(data.year)
+      setSuggestions([])
+      setShowSuggestions(false)
     } catch (err) {
       console.error('Scan error:', err)
       setScanError('Failed to scan the image. Please try again.')
