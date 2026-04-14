@@ -56,7 +56,7 @@ export default function ProfilePage() {
             const dateClause = dates.map(d => `date:${d}`).join(' OR ')
             const q = `creator:"${artist}" AND mediatype:etree AND (${dateClause})`
             const url = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(q)}&fl[]=identifier&fl[]=date&sort[]=downloads+desc&output=json&rows=${dates.length * 3}`
-            const res = await fetch(url, { signal: AbortSignal.timeout(8000) })
+            const res = await fetch(url, { signal: AbortSignal.timeout(15000) })
             if (!res.ok) return
             const data = await res.json()
             const docs = data?.response?.docs || []
