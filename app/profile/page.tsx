@@ -16,6 +16,7 @@ export default function ProfilePage() {
   const [groupBy, setGroupBy] = useState<'none' | 'artist' | 'year'>('none')
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [archiveLinks, setArchiveLinks] = useState<Record<string, string>>({})
 
   useEffect(() => {
     const loadData = async () => {
@@ -33,6 +34,27 @@ export default function ProfilePage() {
     }
     loadData()
   }, [])
+
+  // Check Archive.org for recordings after checkins load
+  useEffect(() => {
+    if (checkins.length === 0) return
+    const checkArchive = async () => {
+      try {
+        const res = await fetch('/api/archive-check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            shows: checkins.map(s => ({ id: s.id, artist: s.artist, date: s.date }))
+          })
+        })
+        const data = await res.json()
+        if (data.results) setArchiveLinks(data.results)
+      } catch (err) {
+        // Silently fail
+      }
+    }
+    checkArchive()
+  }, [checkins])
 
   const formatDate = (d: string) => {
     if (!d) return ''
@@ -239,7 +261,25 @@ export default function ProfilePage() {
                       <p style={{ fontSize: '14px', color: '#5C7A9E', margin: '0 0 8px' }}>
                         {groupBy === 'artist' ? (show.city || '') : `${show.venue || ''}${show.city ? ` · ${show.city}` : ''}`}
                       </p>
-                      <p style={{ fontSize: '14px', fontWeight: 500, color: '#2C4A6E', margin: 0 }}>{formatDate(show.date)}</p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <p style={{ fontSize: '14px', fontWeight: 500, color: '#2C4A6E', margin: 0 }}>{formatDate(show.date)}</p>
+                        {archiveLinks[show.id] && (
+                          <a
+                            href={archiveLinks[show.id]}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                              display: 'inline-flex', alignItems: 'center', gap: '3px',
+                              fontSize: '12px', color: '#5C7A9E', textDecoration: 'none',
+                              whiteSpace: 'nowrap',
+                            }}
+                            title="Listen on Archive.org"
+                          >
+                            🎙 Listen
+                          </a>
+                        )}
+                      </div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <button onClick={(e) => { e.stopPropagation(); setConfirmDelete(confirmDelete === show.id ? null : show.id) }}

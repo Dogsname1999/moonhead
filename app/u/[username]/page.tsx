@@ -13,6 +13,7 @@ export default function PublicProfilePage() {
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [groupBy, setGroupBy] = useState<'date' | 'artist' | 'year'>('date')
+  const [archiveLinks, setArchiveLinks] = useState<Record<string, string>>({})
 
   useEffect(() => {
     const load = async () => {
@@ -44,6 +45,27 @@ export default function PublicProfilePage() {
     }
     load()
   }, [username])
+
+  // Check Archive.org for recordings after shows load
+  useEffect(() => {
+    if (shows.length === 0) return
+    const checkArchive = async () => {
+      try {
+        const res = await fetch('/api/archive-check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            shows: shows.map(s => ({ id: s.id, artist: s.artist, date: s.date }))
+          })
+        })
+        const data = await res.json()
+        if (data.results) setArchiveLinks(data.results)
+      } catch (err) {
+        // Silently fail - archive badges are a nice-to-have
+      }
+    }
+    checkArchive()
+  }, [shows])
 
   const formatDate = (d: string) => {
     if (!d) return ''
@@ -205,7 +227,25 @@ export default function PublicProfilePage() {
                                 : `${show.venue || ''}${show.city ? ` · ${show.city}` : ''}`
                               }
                             </p>
-                            <p style={{ fontSize: '14px', fontWeight: 500, color: '#2C4A6E', margin: 0 }}>{formatDate(show.date)}</p>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <p style={{ fontSize: '14px', fontWeight: 500, color: '#2C4A6E', margin: 0 }}>{formatDate(show.date)}</p>
+                              {archiveLinks[show.id] && (
+                                <a
+                                  href={archiveLinks[show.id]}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={(e) => e.stopPropagation()}
+                                  style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: '3px',
+                                    fontSize: '12px', color: '#5C7A9E', textDecoration: 'none',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                  title="Listen on Archive.org"
+                                >
+                                  🎙 Listen
+                                </a>
+                              )}
+                            </div>
                           </div>
                           <span style={{ color: '#8BA5C0', fontSize: '18px', marginTop: '4px' }}>→</span>
                         </div>
