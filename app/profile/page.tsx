@@ -185,8 +185,13 @@ export default function ProfilePage() {
         ) : (() => {
           // Build groups
           const groups: { label: string; items: any[] }[] = []
+          const sortByDate = (arr: any[]) => arr.sort((a, b) => {
+            const da = a.date ? new Date(a.date).getTime() : 0
+            const db = b.date ? new Date(b.date).getTime() : 0
+            return db - da // newest first
+          })
           if (groupBy === 'none') {
-            groups.push({ label: '', items: checkins })
+            groups.push({ label: '', items: sortByDate([...checkins]) })
           } else if (groupBy === 'year') {
             const yearMap: Record<string, any[]> = {}
             checkins.forEach(s => {
@@ -195,7 +200,7 @@ export default function ProfilePage() {
               yearMap[y].push(s)
             })
             Object.keys(yearMap).sort((a, b) => b.localeCompare(a)).forEach(y => {
-              groups.push({ label: y, items: yearMap[y] })
+              groups.push({ label: y, items: sortByDate(yearMap[y]) })
             })
           } else {
             const artistMap: Record<string, any[]> = {}
@@ -205,7 +210,7 @@ export default function ProfilePage() {
               artistMap[a].push(s)
             })
             Object.keys(artistMap).sort((a, b) => a.localeCompare(b)).forEach(a => {
-              groups.push({ label: `${a} (${artistMap[a].length})`, items: artistMap[a] })
+              groups.push({ label: `${a} (${artistMap[a].length})`, items: sortByDate(artistMap[a]) })
             })
           }
 

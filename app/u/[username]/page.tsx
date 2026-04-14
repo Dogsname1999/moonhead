@@ -143,8 +143,13 @@ export default function PublicProfilePage() {
         ) : (() => {
           // Build groups
           const groups: { label: string; shows: any[] }[] = []
+          const sortByDate = (arr: any[]) => arr.sort((a, b) => {
+            const da = a.date ? new Date(a.date).getTime() : 0
+            const db = b.date ? new Date(b.date).getTime() : 0
+            return db - da // newest first
+          })
           if (groupBy === 'date') {
-            groups.push({ label: '', shows: shows })
+            groups.push({ label: '', shows: sortByDate([...shows]) })
           } else if (groupBy === 'year') {
             const yearMap: Record<string, any[]> = {}
             shows.forEach(s => {
@@ -153,7 +158,7 @@ export default function PublicProfilePage() {
               yearMap[y].push(s)
             })
             Object.keys(yearMap).sort((a, b) => b.localeCompare(a)).forEach(y => {
-              groups.push({ label: y, shows: yearMap[y] })
+              groups.push({ label: y, shows: sortByDate(yearMap[y]) })
             })
           } else {
             const artistMap: Record<string, any[]> = {}
@@ -163,7 +168,7 @@ export default function PublicProfilePage() {
               artistMap[a].push(s)
             })
             Object.keys(artistMap).sort((a, b) => a.localeCompare(b)).forEach(a => {
-              groups.push({ label: `${a} (${artistMap[a].length})`, shows: artistMap[a] })
+              groups.push({ label: `${a} (${artistMap[a].length})`, shows: sortByDate(artistMap[a]) })
             })
           }
 
