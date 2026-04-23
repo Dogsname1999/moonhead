@@ -12,7 +12,7 @@ const welcomeHtml = `<!DOCTYPE html>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F5F0E8;">
 <tr><td align="center" style="padding:40px 20px;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;margin:0 auto;">
-  <tr><td align="center" style="padding:0 0 32px;"><img src="https://www.tourbustix.com/ticket.png" alt="Tourbustix" width="100" height="100" style="display:block;width:100px;height:100px;" /></td></tr>
+  <tr><td align="center" style="padding:0 0 32px;"><img src="https://www.tourbustix.com/ticket.png" alt="Tourbustix" width="100" style="display:block;width:100px;height:auto;" /></td></tr>
   <tr><td align="center" style="padding:0 0 12px;"><h1 style="margin:0;font-size:28px;font-weight:800;color:#2C4A6E;letter-spacing:0.05em;">WELCOME TO TOURBUSTIX</h1></td></tr>
   <tr><td align="center" style="padding:0 0 36px;"><p style="margin:0;font-size:16px;color:#5C7A9E;">The ticket stub. Evolved.</p></td></tr>
   <tr><td style="padding:0 0 36px;">
